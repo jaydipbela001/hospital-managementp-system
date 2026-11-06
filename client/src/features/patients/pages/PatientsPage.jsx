@@ -268,43 +268,80 @@ export default function PatientsPage() {
 
       {/* Patient Profile View Modal */}
       {detailModalOpen && selectedPatient && (
-        <Modal isOpen={detailModalOpen} onClose={() => setDetailModalOpen(false)} title={`Patient Profile: ${selectedPatient.patientCode}`}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '6px' }}>
-              <div><strong>Name:</strong> {selectedPatient.name}</div>
-              <div><strong>Phone:</strong> {selectedPatient.phone}</div>
-              <div><strong>Gender / Blood:</strong> {selectedPatient.gender} | {selectedPatient.bloodGroup}</div>
-              <div><strong>Email:</strong> {selectedPatient.email || '—'}</div>
-              <div><strong>Address:</strong> {selectedPatient.address || '—'}</div>
-              <div><strong>DOB:</strong> {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : '—'}</div>
+        <Modal
+          isOpen={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
+          title={`Patient Profile • ${selectedPatient.patientCode}`}
+          maxWidth="580px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.9rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '0.75rem',
+                background: 'var(--color-surface-muted)',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Full Name</span>
+                <div style={{ fontWeight: 600, color: 'var(--color-text)', marginTop: '2px' }}>{selectedPatient.name}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Phone</span>
+                <div style={{ fontWeight: 600, color: 'var(--color-text)', marginTop: '2px' }}>{selectedPatient.phone}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Gender & Blood</span>
+                <div style={{ fontWeight: 600, color: 'var(--color-text)', marginTop: '2px' }}>
+                  {selectedPatient.gender} <span style={{ color: 'var(--color-border-strong)' }}>|</span> {selectedPatient.bloodGroup}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Email Address</span>
+                <div style={{ fontWeight: 500, color: 'var(--color-text)', marginTop: '2px' }}>{selectedPatient.email || '—'}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Date of Birth</span>
+                <div style={{ fontWeight: 500, color: 'var(--color-text)', marginTop: '2px' }}>
+                  {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : '—'}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Residential Address</span>
+                <div style={{ fontWeight: 500, color: 'var(--color-text)', marginTop: '2px' }}>{selectedPatient.address || '—'}</div>
+              </div>
             </div>
 
-            <div>
-              <h4 style={{ margin: '0 0 0.25rem 0', color: '#b91c1c' }}>Allergies</h4>
-              <p style={{ margin: 0, color: '#334155' }}>
+            <div style={{ padding: '0.75rem 1rem', background: '#fef2f2', borderRadius: 'var(--radius-md)', border: '1px solid #fecaca' }}>
+              <h4 style={{ margin: '0 0 0.35rem 0', color: 'var(--color-danger)', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>Allergies</h4>
+              <p style={{ margin: 0, color: '#991b1b', fontSize: '0.875rem' }}>
                 {selectedPatient.allergies?.length > 0 ? selectedPatient.allergies.join(', ') : 'No known allergies.'}
               </p>
             </div>
 
-            <div>
-              <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Medical History</h4>
-              <p style={{ margin: 0, color: '#334155' }}>
+            <div style={{ padding: '0.75rem 1rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <h4 style={{ margin: '0 0 0.35rem 0', color: 'var(--color-primary-900)', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>Medical History</h4>
+              <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
                 {selectedPatient.medicalHistory || 'No significant medical history recorded.'}
               </p>
             </div>
 
-            <div>
-              <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Emergency Contact</h4>
-              <p style={{ margin: 0, color: '#334155' }}>
+            <div style={{ padding: '0.75rem 1rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <h4 style={{ margin: '0 0 0.35rem 0', color: 'var(--color-primary-900)', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>Emergency Contact</h4>
+              <p style={{ margin: 0, color: 'var(--color-text)', fontSize: '0.875rem' }}>
                 {selectedPatient.emergencyContact?.name
-                  ? `${selectedPatient.emergencyContact.name} (${selectedPatient.emergencyContact.relation || 'Contact'}): ${selectedPatient.emergencyContact.phone}`
+                  ? `${selectedPatient.emergencyContact.name} (${selectedPatient.emergencyContact.relation || 'Contact'}) • ${selectedPatient.emergencyContact.phone}`
                   : 'None recorded'}
               </p>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
               <Button variant="primary" onClick={() => setDetailModalOpen(false)}>
-                Close
+                Close Profile
               </Button>
             </div>
           </div>

@@ -7,6 +7,11 @@ import DepartmentsPage from '../features/departments/pages/DepartmentsPage';
 import StaffPage from '../features/staff/pages/StaffPage';
 import PatientsPage from '../features/patients/pages/PatientsPage';
 import AppointmentsPage from '../features/appointments/pages/AppointmentsPage';
+import OpdPage from '../features/opd/pages/OpdPage';
+import IpdPage from '../features/ipd/pages/IpdPage';
+import LaboratoryPage from '../features/laboratory/pages/LaboratoryPage';
+import PharmacyPage from '../features/pharmacy/pages/PharmacyPage';
+import BillingPage from '../features/billing/pages/BillingPage';
 import HospitalSettingsPage from '../features/settings/pages/HospitalSettingsPage';
 import ModulePlaceholder from '../features/common/ModulePlaceholder';
 import ProtectedRoute from './ProtectedRoute';
@@ -78,12 +83,7 @@ export function AppRouter() {
         element={
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST']}>
             <AdminLayout>
-              <ModulePlaceholder
-                moduleName="OPD Consultation"
-                description="Outpatient encounters, clinical diagnoses, clinical notes, and prescription PDF generation."
-                plannedPhase="Phase 6"
-                icon="🩺"
-              />
+              <OpdPage />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -94,12 +94,7 @@ export function AppRouter() {
         element={
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'DOCTOR', 'NURSE', 'HOSPITAL_ADMIN']}>
             <AdminLayout>
-              <ModulePlaceholder
-                moduleName="IPD, Wards & Beds"
-                description="Inpatient admissions, ward/room bed allocation, nursing notes, and discharge summaries."
-                plannedPhase="Phase 7"
-                icon="🛏️"
-              />
+              <IpdPage />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -110,12 +105,7 @@ export function AppRouter() {
         element={
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'PHARMACIST', 'HOSPITAL_ADMIN']}>
             <AdminLayout>
-              <ModulePlaceholder
-                moduleName="Pharmacy & Inventory"
-                description="Medicine catalog, batch tracking, expiry monitoring, and prescription dispensing."
-                plannedPhase="Phase 9"
-                icon="💊"
-              />
+              <PharmacyPage />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -124,14 +114,9 @@ export function AppRouter() {
       <Route
         path="/laboratory"
         element={
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'LAB_TECHNICIAN', 'HOSPITAL_ADMIN']}>
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'LAB_TECHNICIAN', 'HOSPITAL_ADMIN', 'DOCTOR']}>
             <AdminLayout>
-              <ModulePlaceholder
-                moduleName="Laboratory Services"
-                description="Diagnostic tests catalog, test ordering, sample processing, and lab result verification."
-                plannedPhase="Phase 8"
-                icon="🔬"
-              />
+              <LaboratoryPage />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -142,12 +127,7 @@ export function AppRouter() {
         element={
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'RECEPTIONIST']}>
             <AdminLayout>
-              <ModulePlaceholder
-                moduleName="Billing & Invoicing"
-                description="Consolidated invoices (OPD/IPD/Lab/Pharmacy), payment receipts, and refunds."
-                plannedPhase="Phase 10"
-                icon="🧾"
-              />
+              <BillingPage />
             </AdminLayout>
           </ProtectedRoute>
         }

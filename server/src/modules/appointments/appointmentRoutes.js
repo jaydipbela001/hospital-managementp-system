@@ -6,6 +6,8 @@ import {
   getAvailableSlots,
   createAppointment,
   updateAppointmentStatus,
+  getDoctorSchedule,
+  updateDoctorSchedule,
 } from "./appointmentController.js";
 
 export const appointmentRouter = Router();
@@ -14,6 +16,14 @@ appointmentRouter.use(authenticate);
 
 // View appointments: Admin, Receptionist, Doctor, Nurse, Patient
 appointmentRouter.get("/", getAppointments);
+
+// Doctor schedule (working hours and exceptions)
+appointmentRouter.get("/schedule", getDoctorSchedule);
+appointmentRouter.put(
+  "/schedule",
+  authorize("SUPER_ADMIN", "HOSPITAL_ADMIN", "DOCTOR"),
+  updateDoctorSchedule
+);
 
 // Calculate free slots for a doctor on a given date
 appointmentRouter.get("/slots", getAvailableSlots);

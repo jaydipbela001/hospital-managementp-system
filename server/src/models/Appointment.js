@@ -100,6 +100,11 @@ const appointmentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    consultationNotes: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     cancelledAt: {
       type: Date,
       default: null,
