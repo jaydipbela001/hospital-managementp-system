@@ -1,0 +1,421 @@
+/* Fullscreen Container with background image */
+.modern-login-layout {
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 32px 50px 32px 5vw;
+  overflow-x: hidden;
+}
+
+/* Mobile & Tablet Responsive View */
+@media (max-width: 900px) {
+  .modern-login-layout {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 32px 20px 48px;
+    background-position: center top;
+  }
+
+  /* Add deep teal gradient background overlay so white text and form stay 100% visible */
+  .modern-login-layout::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(14, 60, 58, 0.94) 0%, rgba(18, 59, 58, 0.96) 55%, #0e3736 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .modern-left-column {
+    width: 100% !important;
+    max-width: 480px !important;
+    padding-right: 0 !important;
+    margin-bottom: 32px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .modern-brand-header {
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .modern-hero-text {
+    padding: 0 0 16px 0 !important;
+  }
+
+  .modern-hero-title {
+    font-size: 2rem !important;
+  }
+
+  .modern-hero-desc {
+    font-size: 0.95rem !important;
+    margin: 0 auto 18px !important;
+  }
+
+  .modern-features-list {
+    align-items: flex-start;
+    display: inline-flex !important;
+    margin: 0 auto 16px !important;
+    text-align: left;
+  }
+
+  .modern-hero-footer {
+    display: none;
+  }
+
+  .modern-right-column {
+    width: 100% !important;
+    max-width: 480px !important;
+    margin-right: 0 !important;
+    justify-content: center !important;
+  }
+
+  .floating-login-card {
+    padding: 32px 24px 24px !important;
+  }
+}
+
+/* Left Column Content (Over the dark green illustration curve) */
+.modern-left-column {
+  flex: 0 0 auto;
+  width: 44%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #ffffff;
+  z-index: 2;
+  padding-right: 16px;
+}
+
+/* Logo at top left */
+.modern-brand-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modern-brand-logo-img {
+  height: 58px;
+  max-width: 280px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+}
+
+/* Headline */
+.modern-hero-text {
+  margin: auto 0;
+  padding: 8px 0;
+}
+
+.modern-hero-kicker {
+  display: inline-block;
+  background: rgba(0, 224, 184, 0.15);
+  border: 1px solid rgba(0, 224, 184, 0.35);
+  color: #00e0b8;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+}
+
+.modern-hero-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #ffffff;
+  margin: 0 0 14px 0;
+  letter-spacing: -0.5px;
+}
+
+.modern-hero-accent {
+  color: #00e0b8;
+}
+
+.modern-hero-desc {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #d1f4ed;
+  max-width: 530px;
+  margin: 0 0 20px 0;
+}
+
+/* 5 Rounded Bullet Points */
+.modern-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.modern-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.94rem;
+  font-weight: 500;
+  color: #f0faf8;
+}
+
+.feature-check-mark {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #00e0b8;
+}
+
+.feature-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: rgba(0, 224, 184, 0.2);
+  border: 1px solid rgba(0, 224, 184, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00e0b8;
+  flex-shrink: 0;
+}
+
+.feature-icon-circle svg {
+  width: 19px;
+  height: 19px;
+}
+
+.modern-hero-footer {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.65);
+  padding-top: 12px;
+}
+
+/* Right Column: Floating Login Card */
+.modern-right-column {
+  flex: 0 0 auto;
+  width: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 2;
+  margin-right: 1.5vw;
+}
+
+@media (max-width: 900px) {
+  .modern-right-column {
+    width: 100%;
+    justify-content: center;
+    margin-top: 30px;
+    margin-right: 0;
+  }
+}
+
+.floating-login-card {
+  width: 100%;
+  max-width: 490px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 44px 42px 34px;
+  box-shadow: 0 20px 48px rgba(10, 45, 45, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(220, 229, 233, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Top Teal Medical Cross Badge */
+.login-card-badge {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #0f8677 0%, #0a695d 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  box-shadow: 0 6px 18px rgba(15, 134, 119, 0.28);
+}
+
+.badge-plus-symbol {
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.login-card-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #123b3a;
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.login-card-subtitle {
+  font-size: 0.96rem;
+  color: #617477;
+  text-align: center;
+  line-height: 1.45;
+  margin: 0 0 28px;
+}
+
+/* Error Alert */
+.login-error-banner {
+  background-color: #fdecee;
+  color: #c23b43;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  margin-bottom: 18px;
+  border-left: 3px solid #c23b43;
+}
+
+/* Form Styles */
+.login-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.custom-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-input-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #172b2b;
+}
+
+.label-required {
+  color: #c23b43;
+}
+
+/* Input with icon left/right */
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon-left {
+  position: absolute;
+  left: 16px;
+  color: #7b9194;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.input-icon-left svg {
+  width: 19px;
+  height: 19px;
+}
+
+.custom-field-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 46px 0 48px;
+  background-color: #fbfdfd;
+  border: 1px solid #d0dee3;
+  border-radius: 12px;
+  font-size: 0.98rem;
+  color: #172b2b;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.custom-field-input:focus {
+  border-color: #0f8677;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(15, 134, 119, 0.16);
+}
+
+.input-icon-right-btn {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #7b9194;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.input-icon-right-btn:hover {
+  color: #172b2b;
+}
+
+.input-icon-right-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Submit Action Button */
+.login-action-btn {
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(135deg, #0f8677 0%, #0a695d 100%) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+  box-shadow: 0 4px 16px rgba(15, 134, 119, 0.28);
+  border: none !important;
+}
+
+.login-action-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0d7568 0%, #08574d 100%) !important;
+}
+
+.btn-icon-symbol {
+  font-size: 1.1rem;
+}
+
+/* Card Trust Footer */
+.login-card-trust {
+  margin-top: 26px;
+  text-align: center;
+  border-top: 1px solid #eef3f5;
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f8677;
+}
+
+.trust-check {
+  font-size: 0.95rem;
+}
+
+.trust-subtext {
+  font-size: 0.78rem;
+  color: #849497;
+  margin: 0;
+}
