@@ -1,0 +1,62 @@
+- generic [ref=e2]:
+  - generic [ref=e64]:
+    - complementary [ref=e65]:
+      - generic [ref=e66]:
+        - generic [aria-hidden] [ref=e67]: +
+        - generic [ref=e68]:
+          - generic [ref=e69]: LifeCare HMS
+          - generic [ref=e70]: MCA Final
+      - navigation [ref=e71]:
+        - link "Dashboard" [ref=e72] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [aria-hidden] [ref=e73]: 📊
+        - link "Appointments" [ref=e75] [cursor=pointer]:
+          - /url: /appointments
+          - generic [aria-hidden] [ref=e76]: 📅
+        - link "Patients" [ref=e78] [cursor=pointer]:
+          - /url: /patients
+          - generic [aria-hidden] [ref=e79]: 🏥
+      - generic [ref=e82]:
+        - generic [ref=e83]: Signed in as
+        - generic [ref=e84]: Dr. Sarah Mitchell
+    - generic [ref=e85]:
+      - banner [ref=e86]:
+        - generic [ref=e87]: Main Hospital Campus
+        - button "D Dr. Sarah Mitchell" [ref=e91] [cursor=pointer]:
+          - generic [ref=e92]: D
+          - generic [ref=e93]: Dr. Sarah Mitchell
+          - generic [aria-hidden] [ref=e94]: ▾
+      - main [ref=e95]:
+        - generic [ref=e96]:
+          - generic [ref=e98]:
+            - 'heading "Doctor Clinical Station: Dr. Dr. Sarah Mitchell" [level=1] [ref=e99]'
+            - paragraph [ref=e100]: Today consultations queue, encounters, and patient history
+          - generic [ref=e101]:
+            - heading "Authorized Department Modules" [level=3] [ref=e102]
+            - generic [ref=e103]:
+              - generic [ref=e104] [cursor=pointer]:
+                - generic [ref=e105]: 📅
+                - generic [ref=e106]: Appointments & Consultations
+              - generic [ref=e107] [cursor=pointer]:
+                - generic [ref=e108]: 🏥
+                - generic [ref=e109]: Patient Records
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - generic [ref=e112]:
+                - generic [ref=e113]: Clinical Status
+                - generic [ref=e114]: Active
+              - generic [ref=e115]: On Duty
+              - generic [ref=e116]: Schedule active
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - generic [ref=e119]: Patient Queue
+                - generic [ref=e120]: Consults
+              - generic [ref=e121]: Live OPD
+              - generic [ref=e122]: Appointments assigned to you
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - generic [ref=e125]: Encounters
+                - generic [ref=e126]: Verified
+              - generic [ref=e127]: Today Schedule
+              - generic [ref=e128]: Write notes & Rx
+  - region "Notifications Alt+T"

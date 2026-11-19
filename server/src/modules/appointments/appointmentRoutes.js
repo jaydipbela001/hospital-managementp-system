@@ -8,6 +8,7 @@ import {
   updateAppointmentStatus,
   getDoctorSchedule,
   updateDoctorSchedule,
+  rescheduleAppointment,
 } from "./appointmentController.js";
 
 export const appointmentRouter = Router();
@@ -33,6 +34,13 @@ appointmentRouter.post(
   "/",
   authorize("SUPER_ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST", "PATIENT"),
   createAppointment
+);
+
+// Reschedule appointment
+appointmentRouter.post(
+  "/:id/reschedule",
+  authorize("SUPER_ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST", "DOCTOR", "PATIENT"),
+  rescheduleAppointment
 );
 
 // Update status (Confirm, Complete, Cancel, No-Show): Clinicians & Front desk

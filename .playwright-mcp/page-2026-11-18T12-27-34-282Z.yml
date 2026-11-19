@@ -1,0 +1,49 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img "LifeCare HMS" [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]: Smart Hospital Management
+        - heading "Better Care. Smarter Management." [level=1] [ref=e9]
+        - paragraph [ref=e10]: Manage patients, doctors, appointments, medical records and hospital operations in one place.
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: ✓
+          - generic [ref=e15]: Patient Self-Service & Doctor Booking
+        - generic [ref=e16]:
+          - generic [ref=e17]: ✓
+          - generic [ref=e19]: Doctor & Appointment Management
+        - generic [ref=e20]:
+          - generic [ref=e21]: ✓
+          - generic [ref=e23]: OPD / IPD & Bed Management
+        - generic [ref=e24]:
+          - generic [ref=e25]: ✓
+          - generic [ref=e27]: Pharmacy & Laboratory Services
+        - generic [ref=e28]:
+          - generic [ref=e29]: ✓
+          - generic [ref=e31]: Billing & Reports
+    - generic [ref=e33]:
+      - generic [ref=e34]: ✚
+      - generic [ref=e36]:
+        - button "Sign In" [ref=e37] [cursor=pointer]
+        - button "Patient Sign Up" [ref=e38] [cursor=pointer]
+      - heading "Hospital Portal Login" [level=2] [ref=e39]
+      - paragraph [ref=e40]: Sign in to access medical records, consultations, and hospital operations.
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]: Email Address *
+          - textbox "Email Address *" [ref=e45]:
+            - /placeholder: name@hospital.com
+        - generic [ref=e46]:
+          - generic [ref=e47]: Password *
+          - generic [ref=e48]:
+            - textbox "Password *" [ref=e49]:
+              - /placeholder: ••••••••
+            - button "Show password" [ref=e50] [cursor=pointer]
+        - button "Sign In to System" [ref=e56] [cursor=pointer]
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: ✔
+            - generic [ref=e61]: Secure & Trusted
+          - paragraph [ref=e62]: 🔒 256-Bit SSL Encrypted • HIPAA Compliant Architecture
+  - region "Notifications Alt+T"

@@ -1,0 +1,53 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - complementary [ref=e8]:
+      - generic [ref=e9]:
+        - generic [aria-hidden] [ref=e10]: +
+        - generic [ref=e11]:
+          - generic [ref=e12]: LifeCare HMS
+          - generic [ref=e13]: MCA Final
+      - navigation [ref=e14]:
+        - link "Dashboard" [ref=e15] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [aria-hidden] [ref=e16]: 📊
+        - link "Appointments" [ref=e18] [cursor=pointer]:
+          - /url: /appointments
+          - generic [aria-hidden] [ref=e19]: 📅
+        - link "Patients" [ref=e21] [cursor=pointer]:
+          - /url: /patients
+          - generic [aria-hidden] [ref=e22]: 🏥
+      - generic [ref=e25]:
+        - generic [ref=e26]: Signed in as
+        - generic [ref=e27]: Dr. Sarah Mitchell
+    - generic [ref=e28]:
+      - banner [ref=e29]:
+        - generic [ref=e30]: Main Hospital Campus
+        - button "D Dr. Sarah Mitchell" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: D
+          - generic [ref=e36]: Dr. Sarah Mitchell
+          - generic [aria-hidden] [ref=e37]: ▾
+      - main [ref=e45]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - generic [ref=e50]: Clinician Workstation
+              - heading "Doctor Consultation Dashboard" [level=2] [ref=e51]
+              - paragraph [ref=e52]: Review your patient queue, start diagnostic consultations, record medical notes, and complete encounters.
+            - generic [ref=e53]:
+              - generic [ref=e54]:
+                - generic [ref=e55]: Today's Total
+                - generic [ref=e56]: "0"
+              - generic [ref=e57]:
+                - generic [ref=e58]: Checked-In / Waiting
+                - generic [ref=e59]: "0"
+              - generic [ref=e60]:
+                - generic [ref=e61]: Completed Today
+                - generic [ref=e62]: "0"
+          - generic [ref=e63]:
+            - button "Today's Schedule (0)" [ref=e64] [cursor=pointer]
+            - button "Upcoming Bookings (0)" [ref=e65] [cursor=pointer]
+            - button "Encounter History (0)" [ref=e66] [cursor=pointer]
+          - generic [ref=e68]:
+            - paragraph [ref=e69]: No appointments found in this view.
+            - text: Newly booked patient appointments will instantly appear here.
+  - region "Notifications Alt+T"

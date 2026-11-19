@@ -1,0 +1,74 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - generic [ref=f2e4]:
+      - img "LifeCare HMS" [ref=f2e6]
+      - generic [ref=f2e7]:
+        - generic [ref=f2e8]: Smart Hospital Management
+        - heading "Better Care. Smarter Management." [level=1] [ref=f2e9]
+        - paragraph [ref=f2e10]: Manage patients, doctors, appointments, medical records and hospital operations in one place.
+      - generic [ref=f2e11]:
+        - generic [ref=f2e12]:
+          - generic [ref=f2e13]: ✓
+          - generic [ref=f2e15]: Patient Self-Service & Doctor Booking
+        - generic [ref=f2e16]:
+          - generic [ref=f2e17]: ✓
+          - generic [ref=f2e19]: Doctor & Appointment Management
+        - generic [ref=f2e20]:
+          - generic [ref=f2e21]: ✓
+          - generic [ref=f2e23]: OPD / IPD & Bed Management
+        - generic [ref=f2e24]:
+          - generic [ref=f2e25]: ✓
+          - generic [ref=f2e27]: Pharmacy & Laboratory Services
+        - generic [ref=f2e28]:
+          - generic [ref=f2e29]: ✓
+          - generic [ref=f2e31]: Billing & Reports
+      - generic [ref=f2e32]: Enterprise Healthcare Portal • All Rights Reserved
+    - generic [ref=f2e34]:
+      - generic [ref=f2e35]: ✚
+      - generic [ref=f2e37]:
+        - button "Sign In" [ref=f2e38] [cursor=pointer]
+        - button "Patient Sign Up" [active] [ref=f2e39] [cursor=pointer]
+      - heading "Create your patient account" [level=2] [ref=f2e64]
+      - paragraph [ref=f2e41]: It takes about a minute. Fields marked * are required.
+      - generic [ref=f2e42]:
+        - generic [ref=f2e43]:
+          - generic [ref=f2e44]: Full name *
+          - textbox "e.g. Jaydip Bela" [ref=f2e65]
+        - generic [ref=f2e47]:
+          - generic [ref=f2e48]: Phone number *
+          - generic [ref=f2e49]:
+            - generic [ref=f2e66]: "+91"
+            - textbox "10-digit mobile number" [ref=f2e67]
+        - generic [ref=f2e68]:
+          - generic [ref=f2e69]:
+            - generic [ref=f2e70]: Gender
+            - generic [ref=f2e71]:
+              - button "Male" [ref=f2e72] [cursor=pointer]
+              - button "Female" [ref=f2e73] [cursor=pointer]
+              - button "Other" [ref=f2e74] [cursor=pointer]
+          - generic [ref=f2e75]:
+            - generic [ref=f2e76]: Blood group
+            - combobox [ref=f2e77]:
+              - option "Not sure" [selected]
+              - option "A+"
+              - option "A-"
+              - option "B+"
+              - option "B-"
+              - option "O+"
+              - option "O-"
+              - option "AB+"
+              - option "AB-"
+        - generic [ref=f2e59]:
+          - generic [ref=f2e78]: Email address *
+          - textbox "you@example.com" [ref=f2e79]
+        - generic [ref=f2e80]:
+          - generic [ref=f2e81]: Password *
+          - generic [ref=f2e82]:
+            - textbox "At least 8 characters" [ref=f2e83]
+            - button "Show" [ref=f2e84] [cursor=pointer]
+          - generic [ref=f2e90]: Use 8 or more characters with a number.
+        - button "Create my account" [ref=f2e91] [cursor=pointer]
+        - generic [ref=f2e92]:
+          - generic [ref=f2e93]: ✔ Your data is encrypted
+          - generic [ref=f2e94]: We only use it to run your hospital visits.
+  - region "Notifications Alt+T"

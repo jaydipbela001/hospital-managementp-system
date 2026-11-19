@@ -1,0 +1,53 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img "LifeCare HMS" [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]: Smart Hospital Management
+        - heading "Better Care. Smarter Management." [level=1] [ref=e9]
+        - paragraph [ref=e10]: Manage patients, doctors, appointments, medical records and hospital operations in one place.
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: ✓
+          - generic [ref=e15]: Patient Self-Service & Doctor Booking
+        - generic [ref=e16]:
+          - generic [ref=e17]: ✓
+          - generic [ref=e19]: Doctor & Appointment Management
+        - generic [ref=e20]:
+          - generic [ref=e21]: ✓
+          - generic [ref=e23]: OPD / IPD & Bed Management
+        - generic [ref=e24]:
+          - generic [ref=e25]: ✓
+          - generic [ref=e27]: Pharmacy & Laboratory Services
+        - generic [ref=e28]:
+          - generic [ref=e29]: ✓
+          - generic [ref=e31]: Billing & Reports
+      - generic [ref=e32]: Enterprise Healthcare Portal • All Rights Reserved
+    - generic [ref=e34]:
+      - generic [ref=e35]: ✚
+      - generic [ref=e37]:
+        - button "Sign In" [ref=e38] [cursor=pointer]
+        - button "Patient Sign Up" [ref=e39] [cursor=pointer]
+      - heading "Hospital Portal Login" [level=2] [ref=e40]
+      - paragraph [ref=e41]: Sign in to access medical records, consultations, and hospital operations.
+      - alert [ref=e65]: Invalid email or password.
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: Email Address *
+          - textbox "Email Address *" [ref=e46]:
+            - /placeholder: name@hospital.com
+            - text: doctor@hospital.local
+        - generic [ref=e47]:
+          - generic [ref=e48]: Password *
+          - generic [ref=e49]:
+            - textbox "Password *" [ref=e50]:
+              - /placeholder: ••••••••
+              - text: Password@123
+            - button "Show password" [ref=e51] [cursor=pointer]
+        - button "Sign In to System" [ref=e57] [cursor=pointer]
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]: ✔
+            - generic [ref=e62]: Secure & Trusted
+          - paragraph [ref=e63]: 🔒 256-Bit SSL Encrypted • HIPAA Compliant Architecture
+  - region "Notifications Alt+T"

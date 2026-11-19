@@ -1,14 +1,9 @@
 import mongoose from "mongoose";
 
 export const ROLES = [
-  "SUPER_ADMIN",
-  "HOSPITAL_ADMIN",
-  "RECEPTIONIST",
-  "DOCTOR",
-  "NURSE",
-  "PHARMACIST",
-  "LAB_TECHNICIAN",
   "PATIENT",
+  "DOCTOR",
+  "RECEPTIONIST",
 ];
 
 const roleSchema = new mongoose.Schema(
@@ -37,4 +32,3 @@ const roleSchema = new mongoose.Schema(
 
 export const Role = mongoose.models.Role || mongoose.model("Role", roleSchema);
 export default Role;
-

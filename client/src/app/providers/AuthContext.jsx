@@ -40,6 +40,17 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const registerPatient = async (registrationData) => {
+    const res = await authService.registerPatient(registrationData);
+    if (res?.data) {
+      if (res.data.token) {
+        localStorage.setItem('hms_token', res.data.token);
+      }
+      setUser(res.data.user);
+    }
+    return res;
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -56,6 +67,7 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     login,
+    registerPatient,
     logout,
   };
 

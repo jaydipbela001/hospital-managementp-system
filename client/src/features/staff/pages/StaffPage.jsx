@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
-import { PageHeader, Button, Input, Select, Modal, Loader } from '../../../components/common';
+import { PageHeader, Button, Input, Select, Modal, Loader, Pagination } from '../../../components/common';
 
 export default function StaffPage() {
   const [staff, setStaff] = useState([]);
@@ -9,6 +9,9 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -24,12 +27,16 @@ export default function StaffPage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const fetchStaff = async () => {
+  const fetchStaff = async (searchTerm = search, pageNum = page, limitNum = limit) => {
     try {
       setLoading(true);
-      const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const res = await apiClient(`/staff${query}`);
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm.trim());
+      params.append('page', pageNum);
+      params.append('limit', limitNum);
+      const res = await apiClient(`/staff?${params.toString()}`);
       setStaff(res?.data || []);
+      if (res?.meta) setMeta(res.meta);
     } catch (err) {
       console.error(err);
     } finally {
@@ -47,7 +54,7 @@ export default function StaffPage() {
   };
 
   useEffect(() => {
-    fetchStaff();
+    fetchStaff('', 1, limit);
     fetchDepartments();
   }, []);
 
@@ -106,7 +113,12 @@ export default function StaffPage() {
           placeholder="Search staff by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && fetchStaff()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setPage(1);
+              fetchStaff(search, 1, limit);
+            }
+          }}
           style={{
             flex: 1,
             padding: '0.6rem 1rem',
@@ -114,7 +126,13 @@ export default function StaffPage() {
             border: '1px solid #cbd5e1',
           }}
         />
-        <Button variant="outline" onClick={fetchStaff}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setPage(1);
+            fetchStaff(search, 1, limit);
+          }}
+        >
           Search
         </Button>
       </div>
@@ -202,6 +220,23 @@ export default function StaffPage() {
               ))}
             </tbody>
           </table>
+
+          <Pagination
+            page={page}
+            totalPages={meta.totalPages}
+            total={meta.total}
+            limit={limit}
+            onPageChange={(p) => {
+              setPage(p);
+              fetchStaff(search, p, limit);
+            }}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+              fetchStaff(search, 1, l);
+            }}
+            itemName="staff members"
+          />
         </div>
       )}
 

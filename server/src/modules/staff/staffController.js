@@ -30,9 +30,23 @@ export const getStaff = async (req, res, next) => {
       User.countDocuments(filter),
     ]);
 
+    let staffData = staff.map((s) => s.toObject());
+    const doctorUserIds = staffData
+      .filter((s) => s.role === "DOCTOR")
+      .map((s) => s._id);
+
+    if (doctorUserIds.length > 0) {
+      const profiles = await DoctorProfile.find({ userId: { $in: doctorUserIds } });
+      const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+      staffData = staffData.map((s) => ({
+        ...s,
+        doctorProfile: profileMap.get(s._id.toString()) || null,
+      }));
+    }
+
     res.status(200).json({
       success: true,
-      data: staff,
+      data: staffData,
       meta: {
         page: parseInt(page, 10),
         limit: take,

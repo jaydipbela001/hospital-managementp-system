@@ -18,7 +18,7 @@ export async function apiClient(endpoint, options = {}) {
   };
 
   if (body) {
-    config.body = isFormData ? body : JSON.stringify(body);
+    config.body = isFormData ? body : (typeof body === 'string' ? body : JSON.stringify(body));
   }
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;

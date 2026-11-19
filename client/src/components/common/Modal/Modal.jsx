@@ -7,8 +7,17 @@ export function Modal({
   title,
   children,
   footer,
-  maxWidth = '500px',
+  maxWidth,
+  size = 'medium',
 }) {
+  const SIZE_MAP = {
+    small: '420px',
+    medium: '560px',
+    large: '780px',
+    xl: '960px',
+  };
+  const effectiveMaxWidth = maxWidth || SIZE_MAP[size] || '560px';
+
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape' && isOpen) {
@@ -31,7 +40,7 @@ export function Modal({
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div
         className="modal-container"
-        style={{ maxWidth }}
+        style={{ maxWidth: effectiveMaxWidth }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">

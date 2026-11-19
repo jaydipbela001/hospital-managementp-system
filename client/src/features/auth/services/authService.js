@@ -8,6 +8,13 @@ export const authService = {
     });
   },
 
+  registerPatient: async (data) => {
+    return apiClient('/auth/register', {
+      method: 'POST',
+      body: data,
+    });
+  },
+
   logout: async () => {
     return apiClient('/auth/logout', {
       method: 'POST',

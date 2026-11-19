@@ -96,30 +96,22 @@ export const getAvailableSlots = async (req, res, next) => {
     const dayOfWeek = targetDate.getDay();
 
     const schedule = await DoctorSchedule.findOne({ doctorId });
-    // Default 09:00 - 17:00 if no custom schedule is configured
-    const availability = schedule?.weeklyAvailability?.find((w) => w.dayOfWeek === dayOfWeek) || {
-      startTime: "09:00",
-      endTime: "17:00",
-    };
+    // Filter all shifts for the target day of week
+    const matchingShifts = schedule
+      ? schedule.weeklyAvailability?.filter((w) => w.dayOfWeek === dayOfWeek) || []
+      : (dayOfWeek >= 1 && dayOfWeek <= 5 ? [{ startTime: "09:00", endTime: "17:00" }] : []);
 
     const slotMinutes = schedule?.slotDurationMinutes || 30;
 
-    // Check doctor exception/leave
+    // Check doctor exception/leave or non-working day
     const isException = schedule?.exceptions?.find((e) => e.date === date && !e.isAvailable);
-    if (isException) {
+    if (isException || matchingShifts.length === 0) {
       return res.status(200).json({
         success: true,
         data: [],
-        message: isException.reason || "Doctor unavailable on this date.",
+        message: isException?.reason || "Doctor unavailable on this day.",
       });
     }
-
-    // Generate intervals for this date
-    const [startH, startM] = availability.startTime.split(":").map(Number);
-    const [endH, endM] = availability.endTime.split(":").map(Number);
-
-    const dayStart = new Date(year, month - 1, day, startH, startM, 0, 0);
-    const dayEnd = new Date(year, month - 1, day, endH, endM, 0, 0);
 
     // Fetch existing active appointments for that doctor on this day
     const dayRangeStart = new Date(year, month - 1, day, 0, 0, 0, 0);
@@ -128,33 +120,49 @@ export const getAvailableSlots = async (req, res, next) => {
     const booked = await Appointment.find({
       doctorId,
       status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
-      startAt: { $gte: dayRangeStart, $lte: dayRangeEnd },
+      startAt: { $lte: dayRangeEnd },
+      endAt: { $gte: dayRangeStart },
     });
 
-    const bookedStarts = new Set(booked.map((b) => new Date(b.startAt).getTime()));
     const now = new Date();
-
     const slots = [];
-    let current = new Date(dayStart);
 
-    while (current < dayEnd) {
-      const slotEnd = new Date(current.getTime() + slotMinutes * 60000);
-      if (slotEnd > dayEnd) break;
+    // Generate intervals for all active shifts of the day (continuous or split)
+    for (const shift of matchingShifts) {
+      const [startH, startM] = shift.startTime.split(":").map(Number);
+      const [endH, endM] = shift.endTime.split(":").map(Number);
 
-      const isBooked = bookedStarts.has(current.getTime());
-      // Do not show past time slots for current day
-      const isPast = current.getTime() <= now.getTime();
+      const shiftStart = new Date(year, month - 1, day, startH, startM, 0, 0);
+      const shiftEnd = new Date(year, month - 1, day, endH, endM, 0, 0);
 
-      if (!isPast) {
-        slots.push({
-          startAt: new Date(current),
-          endAt: slotEnd,
-          isAvailable: !isBooked,
+      let current = new Date(shiftStart);
+
+      while (current < shiftEnd) {
+        const slotEnd = new Date(current.getTime() + slotMinutes * 60000);
+        if (slotEnd > shiftEnd) break;
+
+        const isBooked = booked.some((b) => {
+          const bStart = new Date(b.startAt).getTime();
+          const bEnd = new Date(b.endAt).getTime();
+          return bStart < slotEnd.getTime() && bEnd > current.getTime();
         });
-      }
 
-      current = slotEnd;
+        // Do not show past time slots for current day
+        const isPast = current.getTime() <= now.getTime();
+
+        if (!isPast) {
+          slots.push({
+            startAt: new Date(current),
+            endAt: slotEnd,
+            isAvailable: !isBooked,
+          });
+        }
+
+        current = slotEnd;
+      }
     }
+
+    slots.sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
 
     res.status(200).json({ success: true, data: slots });
   } catch (err) {
@@ -213,38 +221,71 @@ export const createAppointment = async (req, res, next) => {
     const schedule = await DoctorSchedule.findOne({ doctorId });
     const slotMinutes = schedule?.slotDurationMinutes || 30;
 
+    // Sort unique slot start timestamps chronologically
+    const sortedTimestamps = Array.from(
+      new Set(rawSlots.map((s) => new Date(s).getTime()))
+    ).sort((a, b) => a - b);
+
+    // Merge contiguous (back-to-back) slots into unified session ranges
+    const mergedSessions = [];
+    for (const time of sortedTimestamps) {
+      const slotStart = new Date(time);
+      const slotEnd = new Date(time + slotMinutes * 60000);
+
+      const prevSession = mergedSessions[mergedSessions.length - 1];
+      if (prevSession && prevSession.endAt.getTime() === slotStart.getTime()) {
+        // Contiguous back-to-back: extend current session
+        prevSession.endAt = slotEnd;
+        prevSession.slotCount += 1;
+      } else {
+        // Discontinuous or first slot: start a new session
+        mergedSessions.push({
+          startAt: slotStart,
+          endAt: slotEnd,
+          slotCount: 1,
+        });
+      }
+    }
+
     const createdAppointments = [];
     const now = new Date();
 
-    for (const slotTime of rawSlots) {
-      const startDate = new Date(slotTime);
-
-      if (startDate.getTime() <= now.getTime()) {
-        throw new ApiError(400, `Cannot book slot in the past: ${startDate.toLocaleTimeString()}`);
+    for (const session of mergedSessions) {
+      if (session.startAt.getTime() <= now.getTime()) {
+        throw new ApiError(
+          400,
+          `Cannot book session in the past: ${session.startAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`
+        );
       }
 
-      const endDate = new Date(startDate.getTime() + slotMinutes * 60000);
-
-      // Check slot conflicts for doctor
+      // Check interval slot conflicts for doctor
       const doctorConflict = await Appointment.findOne({
         doctorId,
         status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
-        startAt: startDate,
+        startAt: { $lt: session.endAt },
+        endAt: { $gt: session.startAt },
       });
 
       if (doctorConflict) {
-        throw new ApiError(409, `Doctor already has a booking at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}.`);
+        throw new ApiError(
+          409,
+          `Doctor already has a booking overlapping with ${session.startAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} - ${session.endAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}.`
+        );
       }
 
-      // Check slot conflict for patient
+      // Check interval slot conflicts for patient
       const patientConflict = await Appointment.findOne({
         patientId: resolvedPatientId,
         status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
-        startAt: startDate,
+        startAt: { $lt: session.endAt },
+        endAt: { $gt: session.startAt },
       });
 
       if (patientConflict) {
-        throw new ApiError(409, `Patient already has an active appointment at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}.`);
+        throw new ApiError(
+          409,
+          `Patient already has an active appointment overlapping with ${session.startAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} - ${session.endAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}.`
+        );
       }
 
       const appointmentCode = await generateAppointmentCode();
@@ -254,8 +295,8 @@ export const createAppointment = async (req, res, next) => {
         patientId: resolvedPatientId,
         doctorId,
         departmentId: finalDepartmentId,
-        startAt: startDate,
-        endAt: endDate,
+        startAt: session.startAt,
+        endAt: session.endAt,
         reason: reason || "",
         consultationFee,
         createdBy: req.user.id || req.user._id,
@@ -264,7 +305,7 @@ export const createAppointment = async (req, res, next) => {
           {
             status: "CONFIRMED",
             changedBy: req.user.id || req.user._id,
-            note: "Appointment booked successfully",
+            note: session.slotCount > 1 ? `Booked ${session.slotCount} contiguous slots as a single session` : "Appointment booked successfully",
             changedAt: new Date(),
           },
         ],
@@ -421,4 +462,76 @@ export const updateDoctorSchedule = async (req, res, next) => {
     next(err);
   }
 };
+
+export const rescheduleAppointment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { startAt, endAt, reason } = req.body;
+
+    if (!startAt) {
+      throw new ApiError(400, "New appointment date & time (startAt) is required.");
+    }
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) throw new ApiError(404, "Original appointment not found.");
+
+    // Permissions check
+    if (req.user.role === "PATIENT") {
+      const patient = await Patient.findOne({ userId: req.user.id || req.user._id });
+      if (!patient || appointment.patientId.toString() !== patient._id.toString()) {
+        throw new ApiError(403, "You can only reschedule your own appointments.");
+      }
+    } else if (req.user.role === "DOCTOR") {
+      if (appointment.doctorId.toString() !== (req.user.id || req.user._id).toString()) {
+        throw new ApiError(403, "You can only reschedule your assigned appointments.");
+      }
+    }
+
+    const newStart = new Date(startAt);
+    const duration = appointment.endAt && appointment.startAt
+      ? appointment.endAt.getTime() - appointment.startAt.getTime()
+      : 30 * 60 * 1000;
+    const newEnd = endAt ? new Date(endAt) : new Date(newStart.getTime() + duration);
+
+    // Verify slot is not double-booked
+    const existingConflict = await Appointment.findOne({
+      _id: { $ne: appointment._id },
+      doctorId: appointment.doctorId,
+      status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
+      startAt: { $lt: newEnd },
+      endAt: { $gt: newStart },
+    });
+    if (existingConflict) {
+      throw new ApiError(409, "The selected doctor already has a booked appointment at that time.");
+    }
+
+    // Save previous times and update
+    const previousDateStr = appointment.startAt.toISOString();
+    appointment.startAt = newStart;
+    appointment.endAt = newEnd;
+    appointment.status = "CONFIRMED";
+    appointment.statusHistory.push({
+      status: "CONFIRMED",
+      changedBy: req.user.id || req.user._id,
+      note: `Rescheduled from ${previousDateStr}. Reason: ${reason || "Patient request"}`,
+      changedAt: new Date(),
+    });
+
+    await appointment.save();
+
+    const populated = await Appointment.findById(appointment._id)
+      .populate("patientId", "name patientCode phone email")
+      .populate("doctorId", "name email phone")
+      .populate("departmentId", "name code");
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment rescheduled successfully.",
+      data: populated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 

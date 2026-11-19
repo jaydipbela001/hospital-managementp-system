@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import User from "../../models/User.js";
 import { generateTokens } from "../../utils/token.js";
 import { ApiError } from "../../utils/ApiError.js";
@@ -86,6 +88,86 @@ export const logout = asyncHandler(async (req, res) => {
     success: true,
     message: "Logged out successfully",
     data: null,
+  });
+});
+
+export const registerPatient = asyncHandler(async (req, res) => {
+  const { name, email, password, phone, gender, bloodGroup, dateOfBirth, address } = req.body;
+
+  if (!name || !email || !password || !phone) {
+    throw new ApiError(400, "Name, email, password, and phone number are required.");
+  }
+
+  // Check existing user
+  const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+  if (existingUser) {
+    throw new ApiError(409, "An account with this email already exists.");
+  }
+
+  // Hash password
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash(password, salt);
+
+  // Create User with PATIENT role
+  const newUser = await User.create({
+    name: name.trim(),
+    email: email.toLowerCase().trim(),
+    phone: phone.trim(),
+    passwordHash,
+    role: "PATIENT",
+    status: "ACTIVE",
+  });
+
+  // Generate unique patient code
+  const year = new Date().getFullYear();
+  const prefix = `PAT-${year}-`;
+  const latestPatient = await mongoose.model("Patient").findOne({ patientCode: { $regex: `^${prefix}` } })
+    .sort({ createdAt: -1 })
+    .select("patientCode");
+  let nextCode = `${prefix}0001`;
+  if (latestPatient) {
+    const parts = latestPatient.patientCode.split("-");
+    const nextNum = parseInt(parts[2], 10) + 1;
+    nextCode = `${prefix}${String(nextNum).padStart(4, "0")}`;
+  }
+
+  // Create linked Patient profile
+  const patientProfile = await mongoose.model("Patient").create({
+    patientCode: nextCode,
+    userId: newUser._id,
+    name: newUser.name,
+    email: newUser.email,
+    phone: newUser.phone,
+    gender: gender || "OTHER",
+    bloodGroup: bloodGroup || "UNKNOWN",
+    dateOfBirth: dateOfBirth || null,
+    address: address || "",
+  });
+
+  // Generate tokens for immediate login
+  const payload = {
+    id: newUser._id.toString(),
+    role: newUser.role,
+    email: newUser.email,
+  };
+  const { accessToken } = generateTokens(payload);
+  res.cookie("token", accessToken, cookieOptions);
+
+  return res.status(201).json({
+    success: true,
+    message: "Patient account registered successfully",
+    data: {
+      user: {
+        id: newUser._id.toString(),
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        role: newUser.role,
+        patientId: patientProfile._id.toString(),
+        patientCode: patientProfile.patientCode,
+      },
+      token: accessToken,
+    },
   });
 });
 

@@ -8,3 +8,4 @@ export { default as Loader } from './Loader/Loader';
 export { default as EmptyState } from './EmptyState/EmptyState';
 export { default as PageHeader } from './PageHeader/PageHeader';
 export { default as ConfirmDialog } from './ConfirmDialog/ConfirmDialog';
+export { default as Pagination } from './Pagination/Pagination';

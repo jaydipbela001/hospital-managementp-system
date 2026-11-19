@@ -1,18 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
-import { PageHeader, Button, Input, Modal, Loader } from '../../../components/common';
+import { PageHeader, Button, Input, Modal, Loader, Pagination } from '../../../components/common';
 
 export default function PatientsPage() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Keep track of latest search term for race-condition prevention
+  const latestSearchRef = useRef(search);
+  latestSearchRef.current = search;
 
   // Registration form
   const [name, setName] = useState('');
@@ -27,22 +35,70 @@ export default function PatientsPage() {
   const [allergies, setAllergies] = useState('');
   const [medicalHistory, setMedicalHistory] = useState('');
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (searchTerm = search, pageNum = page, limitNum = limit, isLive = false) => {
     try {
-      setLoading(true);
-      const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const res = await apiClient(`/patients${query}`);
-      setPatients(res?.data || []);
+      if (isLive) {
+        setIsSearching(true);
+      } else {
+        setInitialLoading(true);
+      }
+      const term = (searchTerm ?? '').trim();
+      const params = new URLSearchParams();
+      if (term) params.append('search', term);
+      params.append('page', pageNum);
+      params.append('limit', limitNum);
+
+      const res = await apiClient(`/patients?${params.toString()}`);
+      
+      // Prevent stale response overwrite
+      if (latestSearchRef.current.trim() === term) {
+        setPatients(res?.data || []);
+        if (res?.meta) {
+          setMeta(res.meta);
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (isLive) {
+        setIsSearching(false);
+      } else {
+        setInitialLoading(false);
+      }
     }
   };
 
+  // Initial fetch on mount
   useEffect(() => {
-    fetchPatients();
+    fetchPatients('', 1, limit, false);
   }, []);
+
+  // Debounced live search as user types without full-page loader
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchPatients(search, 1, limit, true);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const handleManualSearch = () => {
+    setPage(1);
+    fetchPatients(search, 1, limit, true);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > (meta.totalPages || 1) || newPage === page) return;
+    setPage(newPage);
+    fetchPatients(search, newPage, limit, true);
+  };
+
+  const handleLimitChange = (newLimit) => {
+    setLimit(newLimit);
+    setPage(1);
+    fetchPatients(search, 1, newLimit, true);
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -74,7 +130,7 @@ export default function PatientsPage() {
       setEmergencyPhone('');
       setAllergies('');
       setMedicalHistory('');
-      fetchPatients();
+      fetchPatients(search, 1, limit, false);
     } catch (err) {
       toast.error(err.message || 'Failed to register patient');
     } finally {
@@ -99,29 +155,81 @@ export default function PatientsPage() {
         }
       />
 
-      <div style={{ display: 'flex', gap: '1rem', margin: '1rem 0' }}>
-        <input
-          type="text"
-          placeholder="Search by patient code, name, or phone..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && fetchPatients()}
-          style={{
-            flex: 1,
-            padding: '0.6rem 1rem',
-            borderRadius: '6px',
-            border: '1px solid #cbd5e1',
-          }}
-        />
-        <Button variant="outline" onClick={fetchPatients}>
-          Search
+      <div style={{ display: 'flex', gap: '0.75rem', margin: '1rem 0', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Search by patient code, name, or phone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+            style={{
+              width: '100%',
+              padding: '0.65rem 2.5rem 0.65rem 1rem',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              fontSize: '0.9rem',
+              outline: 'none',
+              transition: 'border-color 0.15s ease',
+            }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                fetchPatients('', true);
+              }}
+              title="Clear search"
+              style={{
+                position: 'absolute',
+                right: '0.75rem',
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1rem',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <Button variant="outline" onClick={handleManualSearch} disabled={isSearching}>
+          {isSearching ? 'Searching...' : 'Search'}
         </Button>
       </div>
 
-      {loading ? (
+      {initialLoading ? (
         <Loader />
       ) : patients.length === 0 ? (
-        <p style={{ color: '#64748b' }}>No patient records found.</p>
+        <div style={{ padding: '2.5rem', textAlign: 'center', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>
+            {search.trim() ? `No patient records found matching "${search}".` : 'No patient records found.'}
+          </p>
+          {search.trim() && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                fetchPatients('', true);
+              }}
+              style={{
+                marginTop: '0.5rem',
+                background: 'none',
+                border: 'none',
+                color: '#0f766e',
+                cursor: 'pointer',
+                fontWeight: 600,
+                textDecoration: 'underline',
+              }}
+            >
+              Clear search filter
+            </button>
+          )}
+        </div>
       ) : (
         <div style={{ overflowX: 'auto', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
@@ -175,6 +283,16 @@ export default function PatientsPage() {
               ))}
             </tbody>
           </table>
+
+          <Pagination
+            page={page}
+            totalPages={meta.totalPages}
+            total={meta.total}
+            limit={limit}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+            itemName="patients"
+          />
         </div>
       )}
 

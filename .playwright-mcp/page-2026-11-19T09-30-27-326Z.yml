@@ -1,0 +1,116 @@
+- generic [ref=e2]:
+  - generic [ref=e68]:
+    - complementary [ref=e69]:
+      - generic [ref=e70]:
+        - generic [aria-hidden] [ref=e71]: +
+        - generic [ref=e72]:
+          - generic [ref=e73]: LifeCare HMS
+          - generic [ref=e74]: MCA Final
+      - navigation [ref=e75]:
+        - link "Dashboard" [ref=e76] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [aria-hidden] [ref=e77]: 📊
+        - link "Appointments" [ref=e79] [cursor=pointer]:
+          - /url: /appointments
+          - generic [aria-hidden] [ref=e80]: 📅
+        - link "My Schedule" [active] [ref=e82] [cursor=pointer]:
+          - /url: /schedule
+          - generic [aria-hidden] [ref=e83]: ⏰
+        - link "Patients" [ref=e85] [cursor=pointer]:
+          - /url: /patients
+          - generic [aria-hidden] [ref=e86]: 🏥
+      - generic [ref=e89]:
+        - generic [ref=e90]: Signed in as
+        - generic [ref=e91]: Dr. Sarah Mitchell
+    - generic [ref=e92]:
+      - banner [ref=e93]:
+        - generic [ref=e94]: Main Hospital Campus
+        - button "D Dr. Sarah Mitchell" [ref=e98] [cursor=pointer]:
+          - generic [ref=e99]: D
+          - generic [ref=e100]: Dr. Sarah Mitchell
+          - generic [aria-hidden] [ref=e101]: ▾
+      - main [ref=e102]:
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - generic [ref=e152]: Clinician Workstation
+              - heading "Doctor Consultation Dashboard" [level=2] [ref=e153]
+              - paragraph [ref=e154]: Review your patient queue, start diagnostic consultations, record medical notes, and complete encounters.
+            - generic [ref=e155]:
+              - button "⏰ My Working Hours" [ref=e156] [cursor=pointer]
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - generic [ref=e159]: Today's Total
+                  - generic [ref=e160]: "0"
+                - generic [ref=e161]:
+                  - generic [ref=e162]: Checked-In / Waiting
+                  - generic [ref=e163]: "0"
+                - generic [ref=e164]:
+                  - generic [ref=e165]: Completed Today
+                  - generic [ref=e166]: "0"
+          - generic [ref=e167]:
+            - button "Today's Schedule (0)" [ref=e168] [cursor=pointer]
+            - button "Upcoming Bookings (0)" [ref=e169] [cursor=pointer]
+            - button "Encounter History (0)" [ref=e170] [cursor=pointer]
+            - button "⏰ My Working Hours & Schedule" [ref=e171] [cursor=pointer]
+          - generic [ref=e172]:
+            - generic [ref=e173]:
+              - generic [ref=e174]:
+                - heading "Current Consultation Schedule" [level=3] [ref=e175]
+                - paragraph [ref=e176]: Review your active working hours and patient appointment timings currently set in the system.
+              - button "✏️ Edit Schedule" [ref=e178] [cursor=pointer]
+            - generic [ref=e179]:
+              - generic [ref=e180]:
+                - generic [ref=e181]:
+                  - generic [ref=e182]: Active Working Days
+                  - generic [ref=e183]: 6 Days / Week
+                  - generic [ref=e184]: Available for patient appointments
+                - generic [ref=e185]:
+                  - generic [ref=e186]: Consultation Slot Duration
+                  - generic [ref=e187]: 15 Minutes
+                  - generic [ref=e188]: Per appointment window
+                - generic [ref=e189]:
+                  - generic [ref=e190]: Weekly Shift Slots
+                  - generic [ref=e191]: 6 Active Shifts
+                  - generic [ref=e192]: Across all working days
+              - generic [ref=e193]:
+                - generic [ref=e194]:
+                  - text: Weekly Hours by Day
+                  - generic [ref=e195]: Currently active consultation hours for each day of the week
+                - generic [ref=e196]:
+                  - generic [ref=e197]:
+                    - generic [ref=e198]:
+                      - generic [ref=e199]: Monday
+                      - generic [ref=e200]: Working
+                    - generic [ref=e201]: 9:00 AM – 5:00 PM
+                  - generic [ref=e204]:
+                    - generic [ref=e205]:
+                      - generic [ref=e206]: Tuesday
+                      - generic [ref=e207]: Working
+                    - generic [ref=e208]: 9:00 AM – 11:00 AM
+                  - generic [ref=e211]:
+                    - generic [ref=e212]:
+                      - generic [ref=e213]: Wednesday
+                      - generic [ref=e214]: Working
+                    - generic [ref=e215]: 9:00 AM – 11:00 AM
+                  - generic [ref=e218]:
+                    - generic [ref=e219]:
+                      - generic [ref=e220]: Thursday
+                      - generic [ref=e221]: Working
+                    - generic [ref=e222]: 9:00 AM – 11:00 AM
+                  - generic [ref=e225]:
+                    - generic [ref=e226]:
+                      - generic [ref=e227]: Friday
+                      - generic [ref=e228]: Working
+                    - generic [ref=e229]: 9:00 AM – 11:00 AM
+                  - generic [ref=e232]:
+                    - generic [ref=e233]:
+                      - generic [ref=e234]: Saturday
+                      - generic [ref=e235]: Working
+                    - generic [ref=e236]: 9:00 AM – 11:00 AM
+                  - generic [ref=e239]:
+                    - generic [ref=e240]:
+                      - generic [ref=e241]: Sunday
+                      - generic [ref=e242]: Day Off
+                    - generic [ref=e243]: No appointments scheduled (Day Off)
+  - region "Notifications Alt+T"

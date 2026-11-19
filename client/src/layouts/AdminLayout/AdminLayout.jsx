@@ -1,13 +1,32 @@
-import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../app/providers/AuthContext';
 import './AdminLayout.css';
 
 export function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileContainerRef = useRef(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        profileOpen &&
+        profileContainerRef.current &&
+        !profileContainerRef.current.contains(event.target)
+      ) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [profileOpen]);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
   const closeSidebar = () => setSidebarOpen(false);
@@ -20,24 +39,47 @@ export function AdminLayout({ children }) {
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: '📊', roles: ['ALL'] },
-    { label: 'Patients', path: '/patients', icon: '🏥', roles: ['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'RECEPTIONIST', 'DOCTOR', 'NURSE'] },
-    { label: 'Doctors', path: '/doctors', icon: '👨‍⚕️', roles: ['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'RECEPTIONIST'] },
-    { label: 'Appointments', path: '/appointments', icon: '📅', roles: ['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'RECEPTIONIST', 'DOCTOR', 'PATIENT'] },
-    { label: 'Departments', path: '/departments', icon: '🏢', roles: ['SUPER_ADMIN', 'HOSPITAL_ADMIN'] },
-    { label: 'OPD Consultation', path: '/opd', icon: '🩺', roles: ['SUPER_ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST'] },
-    { label: 'IPD / Wards', path: '/ipd', icon: '🛏️', roles: ['SUPER_ADMIN', 'DOCTOR', 'NURSE', 'HOSPITAL_ADMIN'] },
-    { label: 'Pharmacy', path: '/pharmacy', icon: '💊', roles: ['SUPER_ADMIN', 'PHARMACIST', 'HOSPITAL_ADMIN'] },
-    { label: 'Laboratory', path: '/laboratory', icon: '🔬', roles: ['SUPER_ADMIN', 'LAB_TECHNICIAN', 'HOSPITAL_ADMIN'] },
-    { label: 'Billing', path: '/billing', icon: '🧾', roles: ['SUPER_ADMIN', 'HOSPITAL_ADMIN', 'RECEPTIONIST'] },
-    { label: 'Settings', path: '/settings', icon: '⚙️', roles: ['SUPER_ADMIN', 'HOSPITAL_ADMIN'] },
+    { label: 'Appointments', path: '/appointments', icon: '📅', roles: ['RECEPTIONIST', 'DOCTOR'] },
+    { label: 'My Schedule', path: '/schedule', icon: '⏰', roles: ['DOCTOR'] },
+    { label: 'Patients', path: '/patients', icon: '🏥', roles: ['RECEPTIONIST', 'DOCTOR'] },
+    { label: 'Doctors & Staff', path: '/doctors', icon: '👨‍⚕️', roles: ['RECEPTIONIST'] },
   ];
 
   // Filter navigation items by current user role
-  const filteredNavItems = navItems.filter((item) => {
-    if (!user) return false;
-    if (user.role === 'SUPER_ADMIN' || item.roles.includes('ALL')) return true;
-    return item.roles.includes(user.role);
-  });
+  const isPatient = user?.role === 'PATIENT';
+  const filteredNavItems = isPatient
+    ? [
+        { label: 'Dashboard', path: '/appointments', icon: null },
+        { label: 'Book a visit', path: '/appointments?tab=book', icon: null },
+        { label: 'My appointments', path: '/appointments?tab=my', icon: null },
+      ]
+    : navItems.filter((item) => {
+        if (!user) return false;
+        if (item.roles.includes('ALL')) return true;
+        return item.roles.includes(user.role);
+      });
+
+  const isNavActive = (itemPath) => {
+    const currentPath = location.pathname;
+    const currentSearch = location.search;
+
+    if (itemPath.includes('?')) {
+      return currentPath + currentSearch === itemPath;
+    }
+
+    if (currentPath === itemPath) {
+      if (!currentSearch) return true;
+      const isChildQueryActive = filteredNavItems.some(
+        (other) =>
+          other.path !== itemPath &&
+          other.path.startsWith(itemPath) &&
+          currentPath + currentSearch === other.path
+      );
+      return !isChildQueryActive;
+    }
+
+    return false;
+  };
 
   return (
     <div className="admin-shell">
@@ -47,12 +89,12 @@ export function AdminLayout({ children }) {
       )}
 
       {/* Sidebar Navigation */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <aside className={`admin-sidebar ${sidebarOpen ? 'sidebar-open' : ''} ${isPatient ? 'sidebar-patient' : ''}`}>
         <div className="sidebar-brand">
-          <div className="brand-logo" aria-hidden="true">✚</div>
+          <div className="brand-logo" aria-hidden="true">+</div>
           <div className="brand-info">
             <span className="brand-title">LifeCare HMS</span>
-            <span className="brand-badge">MCA Final</span>
+            <span className="brand-badge">{isPatient ? 'Patient portal' : 'MCA Final'}</span>
           </div>
           <button
             type="button"
@@ -67,12 +109,12 @@ export function AdminLayout({ children }) {
         <nav className="sidebar-nav">
           {filteredNavItems.map((item) => (
             <NavLink
-              key={item.path}
+              key={item.label}
               to={item.path}
-              className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}
+              className={() => `nav-link ${isNavActive(item.path) ? 'nav-link-active' : ''}`}
               onClick={closeSidebar}
             >
-              <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+              {item.icon && <span className="nav-icon" aria-hidden="true">{item.icon}</span>}
               <span className="nav-label">{item.label}</span>
             </NavLink>
           ))}
@@ -80,8 +122,8 @@ export function AdminLayout({ children }) {
 
         <div className="sidebar-footer">
           <div className="user-info-brief">
-            <span className="user-role-tag">{user?.role || 'Guest'}</span>
-            <span className="user-name">{user?.name || 'Authorized User'}</span>
+            <span className="user-role-tag">Signed in as</span>
+            <span className="user-name">{user?.name || 'User'}</span>
           </div>
         </div>
       </aside>
@@ -103,7 +145,7 @@ export function AdminLayout({ children }) {
           </div>
 
           <div className="topbar-right">
-            <div className="topbar-profile-container">
+            <div className="topbar-profile-container" ref={profileContainerRef}>
               <button
                 type="button"
                 className="profile-menu-trigger"

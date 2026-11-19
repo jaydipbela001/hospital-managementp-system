@@ -7,8 +7,8 @@
 /* Sidebar Styles */
 .admin-sidebar {
   width: var(--sidebar-width);
-  background-color: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background-color: #f8fafc;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -17,6 +17,58 @@
   left: 0;
   z-index: 100;
   transition: transform 0.2s ease-in-out;
+}
+
+.sidebar-patient {
+  background-color: #f8fafc;
+  border-right: none;
+}
+
+.sidebar-patient .brand-logo {
+  background-color: #0f766e;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.sidebar-patient .nav-link {
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+}
+
+.sidebar-patient .nav-link-active {
+  background-color: #d1fae5;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.sidebar-patient .sidebar-footer {
+  background-color: transparent;
+  border-top: none;
+  padding: 1.25rem 1rem;
+}
+
+.sidebar-patient .user-info-brief {
+  background-color: #f1f5f9;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+}
+
+.sidebar-patient .user-role-tag {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.sidebar-patient .user-name {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .sidebar-brand {
