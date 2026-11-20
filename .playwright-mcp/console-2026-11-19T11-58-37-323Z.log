@@ -1,0 +1,19 @@
+[     299ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-QXLG2TGQ.js?v=a254cc0b:21607
+[     418ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=a254cc0b:4415
+[     419ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=a254cc0b:4415
+[     456ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5000/api/v1/auth/me:1
+[     456ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5000/api/v1/auth/me:1
+[     458ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:5173/login:1
+[  290860ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:964
+[  290867ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error during WebSocket handshake: net::ERR_CONNECTION_RESET @ http://localhost:5173/@vite/client:1035
+[  291871ms] [ERROR] WebSocket connection to 'ws://localhost:5173/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/@vite/client:1035
+[  293373ms] [ERROR] WebSocket connection to 'ws://localhost:5173/?token=ZjDYyq7S6azm' failed: Error during WebSocket handshake: Unexpected response code: 400 @ http://localhost:5173/@vite/client:802
+[  293414ms] [ERROR] WebSocket connection to 'ws://localhost:5173/?token=ZjDYyq7S6azm' failed: Error during WebSocket handshake: Unexpected response code: 400 @ http://localhost:5173/@vite/client:815
+[  293414ms] [ERROR] [vite] failed to connect to websocket.
+your current setup:
+  (browser) localhost:5173/ <--[HTTP]--> localhost:5173/ (server)
+  (browser) localhost:5173/ <--[WebSocket (failing)]--> localhost:5173/ (server)
+Check out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr . @ http://localhost:5173/@vite/client:830
+[  294540ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-QXLG2TGQ.js?v=a254cc0b:21607
+[  294578ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=a254cc0b:4415
+[  294578ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=a254cc0b:4415

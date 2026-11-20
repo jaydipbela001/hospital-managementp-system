@@ -9,7 +9,7 @@ export default function Pagination({
   onPageChange,
   onLimitChange,
   itemName = 'records',
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions = [5, 10],
 }) {
   if (total <= 0) return null;
 
@@ -43,7 +43,7 @@ export default function Pagination({
   return (
     <div className="pagination-container">
       <div className="pagination-info">
-        <span>
+        <span className="pagination-text-summary">
           Showing <span className="pagination-highlight">{startRecord}</span> to{' '}
           <span className="pagination-highlight">{endRecord}</span> of{' '}
           <span className="pagination-highlight">{total}</span> {itemName}
@@ -78,7 +78,7 @@ export default function Pagination({
           onClick={() => onPageChange(page - 1)}
           aria-label="Previous Page"
         >
-          ‹ Previous
+          ‹ <span className="pagination-nav-label">Previous</span>
         </button>
 
         {getPageNumbers().map((item) => {
@@ -109,7 +109,7 @@ export default function Pagination({
           onClick={() => onPageChange(page + 1)}
           aria-label="Next Page"
         >
-          Next ›
+          <span className="pagination-nav-label">Next</span> ›
         </button>
       </div>
     </div>

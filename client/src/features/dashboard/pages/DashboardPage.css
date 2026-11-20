@@ -189,3 +189,39 @@
   color: #0f766e;
   transform: translateX(4px);
 }
+
+/* ==========================================================================
+   Mobile & Tablet Responsiveness
+   ========================================================================== */
+@media (max-width: 768px) {
+  .dashboard-page-container {
+    gap: 1rem;
+  }
+
+  .dashboard-hero-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .dash-hero-title {
+    font-size: 1.35rem;
+  }
+
+  .dash-hero-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .dash-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .dash-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .dash-action-card {
+    padding: 1rem;
+  }
+}
+

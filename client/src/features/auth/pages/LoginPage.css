@@ -15,13 +15,51 @@
   overflow: hidden;
 }
 
+/* Floating Install App button on login page */
+.login-pwa-install-top-btn {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #064e3b;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 8px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.login-pwa-install-top-btn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
 /* Mobile & Tablet Responsive View */
 @media (max-width: 900px) {
+  .login-pwa-install-top-btn {
+    top: 14px;
+    right: 14px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
   .modern-login-layout {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 32px 20px 48px;
+    padding: 20px 16px 36px !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
     background-position: center top;
   }
 
@@ -39,38 +77,50 @@
     width: 100% !important;
     max-width: 480px !important;
     padding-right: 0 !important;
-    margin-bottom: 32px;
+    margin-bottom: 14px !important;
     text-align: center;
     align-items: center;
   }
 
   .modern-brand-header {
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px !important;
+  }
+
+  .modern-brand-logo-img {
+    height: 40px !important;
   }
 
   .modern-hero-text {
-    padding: 0 0 16px 0 !important;
+    padding: 0 !important;
+  }
+
+  .modern-hero-kicker {
+    margin-bottom: 4px !important;
+    font-size: 0.72rem !important;
+    padding: 2px 8px !important;
   }
 
   .modern-hero-title {
-    font-size: 2rem !important;
+    font-size: 1.35rem !important;
+    line-height: 1.25 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .modern-hero-title br {
+    display: none;
   }
 
   .modern-hero-desc {
-    font-size: 0.95rem !important;
-    margin: 0 auto 18px !important;
+    display: none !important;
   }
 
   .modern-features-list {
-    align-items: flex-start;
-    display: inline-flex !important;
-    margin: 0 auto 16px !important;
-    text-align: left;
+    display: none !important;
   }
 
   .modern-hero-footer {
-    display: none;
+    display: none !important;
   }
 
   .modern-right-column {
@@ -81,7 +131,23 @@
   }
 
   .floating-login-card {
-    padding: 32px 24px 24px !important;
+    padding: 24px 20px 20px !important;
+    border-radius: 16px !important;
+  }
+
+  .modern-card-logo-badge {
+    width: 44px !important;
+    height: 44px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .card-welcome-title {
+    font-size: 1.25rem !important;
+  }
+
+  .card-welcome-sub {
+    font-size: 0.8rem !important;
+    margin-bottom: 16px !important;
   }
 }
 

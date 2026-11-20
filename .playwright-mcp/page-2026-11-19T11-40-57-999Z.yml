@@ -1,0 +1,102 @@
+- generic [ref=e6]:
+  - generic [ref=e68]:
+    - complementary [ref=e69]:
+      - generic [ref=e70]:
+        - generic [aria-hidden] [ref=e71]: +
+        - generic [ref=e72]:
+          - generic [ref=e73]: LifeCare HMS
+          - generic [ref=e74]: Patient portal
+      - navigation [ref=e75]:
+        - link "Dashboard" [ref=e76] [cursor=pointer]:
+          - /url: /appointments
+        - link "Book a visit" [ref=e78] [cursor=pointer]:
+          - /url: /appointments?tab=book
+        - link "My appointments" [ref=e80] [cursor=pointer]:
+          - /url: /appointments?tab=my
+      - generic [ref=e83]:
+        - generic [ref=e84]: Signed in as
+        - generic [ref=e85]: Jaydip Bela
+    - generic [ref=e86]:
+      - banner [ref=e87]:
+        - generic [ref=e88]: Main Hospital Campus
+        - button "J Jaydip Bela" [ref=e92] [cursor=pointer]:
+          - generic [ref=e93]: J
+          - generic [ref=e94]: Jaydip Bela
+          - generic [aria-hidden] [ref=e95]: ▾
+      - main [ref=e96]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - heading "Good morning, Jaydip" [level=1] [ref=e101]
+              - paragraph [ref=e102]: Find a specialist, pick a free slot and keep track of every visit here.
+            - generic [ref=e103]:
+              - generic [ref=e104]: Your next visit
+              - generic [ref=e105]: Dr. Sarah Mitchell
+              - generic [ref=e106]: 20 Nov 2026 · 9:30 AM
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: "2"
+              - generic [ref=e110]: Total visits
+            - generic [ref=e111]:
+              - generic [ref=e112]: "2"
+              - generic [ref=e113]: Upcoming
+            - generic [ref=e114]:
+              - generic [ref=e115]: "0"
+              - generic [ref=e116]: Cancelled
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - heading "Book a visit" [level=2] [ref=e119]
+              - paragraph [ref=e120]: Search by doctor name or specialty, then choose a time.
+              - generic [ref=e121]:
+                - textbox "Search doctors" [ref=e122]
+                - combobox [ref=e123]:
+                  - option "All departments" [selected]
+                  - option "Cardiology"
+                  - option "General Medicine"
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - generic [ref=e126]: J
+                  - generic [ref=e127]:
+                    - generic [ref=e128]: Dr. Jenil Shah
+                    - generic [ref=e129]: Consultant Physician · General Medicine · 5+ yrs
+                    - generic [ref=e130]: Free consultation
+                  - button "Book" [ref=e131] [cursor=pointer]
+                - generic [ref=e132]:
+                  - generic [ref=e133]: S
+                  - generic [ref=e134]:
+                    - generic [ref=e135]: Dr. Sarah Mitchell
+                    - generic [ref=e136]: Cardiologist · Cardiology · 5+ yrs
+                    - generic [ref=e137]: ₹75
+                  - button "Book" [ref=e138] [cursor=pointer]
+            - generic [ref=e139]:
+              - heading "My appointments" [level=2] [ref=e140]
+              - paragraph [ref=e141]: Live status of your consultations.
+              - generic [ref=e142]:
+                - button "Upcoming" [ref=e143] [cursor=pointer]
+                - button "All" [ref=e144] [cursor=pointer]
+              - generic [ref=e145]:
+                - generic [ref=e146]:
+                  - generic [ref=e147]:
+                    - generic [ref=e148]: APT-2026-0001
+                    - generic [ref=e149]: Confirmed
+                  - generic [ref=e150]: Dr. Sarah Mitchell
+                  - generic [ref=e151]: Cardiology
+                  - generic [ref=e152]:
+                    - generic [ref=e153]: 20 Nov 2026 · 9:30 AM
+                    - generic [ref=e154]: ₹75
+                  - generic [ref=e155]:
+                    - button "Reschedule" [ref=e156] [cursor=pointer]
+                    - button "Cancel visit" [ref=e157] [cursor=pointer]
+                - generic [ref=e158]:
+                  - generic [ref=e159]:
+                    - generic [ref=e160]: APT-2026-0002
+                    - generic [ref=e161]: Confirmed
+                  - generic [ref=e162]: Dr. Sarah Mitchell
+                  - generic [ref=e163]: Cardiology
+                  - generic [ref=e164]:
+                    - generic [ref=e165]: 19 Nov 2026 · 6:30 PM
+                    - generic [ref=e166]: ₹75
+                  - generic [ref=e167]:
+                    - button "Reschedule" [ref=e168] [cursor=pointer]
+                    - button "Cancel visit" [ref=e169] [cursor=pointer]
+  - region "Notifications Alt+T"

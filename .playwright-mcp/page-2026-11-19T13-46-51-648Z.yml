@@ -1,0 +1,4 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - paragraph [ref=e5]: Authenticating session...
+    - region "Notifications Alt+T"

@@ -10,7 +10,7 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRouter />
-        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} style={{ zIndex: 999999 }} />
       </AuthProvider>
     </BrowserRouter>
   );

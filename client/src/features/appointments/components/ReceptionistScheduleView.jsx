@@ -1,20 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
+import { dataCache } from '../../../services/dataCache';
 import { Badge, Button, Modal, Pagination } from '../../../components/common';
 import '../pages/AppointmentsPage.css';
 
+const formatTimeRange = (startAt, endAt) => {
+  if (!startAt) return '';
+  const sStr = new Date(startAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  if (!endAt) return sStr;
+  const eStr = new Date(endAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${sStr} - ${eStr}`;
+};
+
 export default function ReceptionistScheduleView() {
-  const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const initialDate = new Date().toISOString().split('T')[0];
+  const cachedApts = dataCache.get(`appointments_${initialDate}`);
+  const cachedDocs = dataCache.get('doctors_list');
+  const cachedDepts = dataCache.get('departments_list');
+
+  const [appointments, setAppointments] = useState(cachedApts || []);
+  const [doctors, setDoctors] = useState(cachedDocs || []);
+  const [departments, setDepartments] = useState(cachedDepts || []);
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedApts);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   // Filter state
-  const [dateFilter, setDateFilter] = useState(() => new Date().toISOString().split('T')[0]);
+  const [dateFilter, setDateFilter] = useState(initialDate);
+  const [appliedDate, setAppliedDate] = useState(initialDate);
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
 
   // Booking Modal
   const [bookingModal, setBookingModal] = useState(false);
@@ -22,7 +50,7 @@ export default function ReceptionistScheduleView() {
   const [modalDoctorId, setModalDoctorId] = useState('');
   const [modalDate, setModalDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [modalSlots, setModalSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const [modalReason, setModalReason] = useState('');
   const [savingBooking, setSavingBooking] = useState(false);
 
@@ -48,51 +76,85 @@ export default function ReceptionistScheduleView() {
   ]);
   const [savingSchedule, setSavingSchedule] = useState(false);
 
-  const fetchRecords = async () => {
+  const fetchRecords = async (isFilterChange = false) => {
     try {
-      setLoading(true);
+      if (isFilterChange) {
+        setIsFiltering(true);
+      } else {
+        setLoading(true);
+      }
       const queryParams = new URLSearchParams();
-      if (dateFilter) queryParams.set('date', dateFilter);
+      if (appliedDate) queryParams.set('date', appliedDate);
       if (selectedDoctorFilter !== 'ALL') queryParams.set('doctorId', selectedDoctorFilter);
       if (statusFilter !== 'ALL') queryParams.set('status', statusFilter);
 
-      const [aptRes, docRes, deptRes, patRes] = await Promise.all([
-        apiClient(`/appointments?${queryParams.toString()}`).catch(() => ({ data: [] })),
-        apiClient('/staff?role=DOCTOR').catch(() => ({ data: [] })),
-        apiClient('/departments').catch(() => ({ data: [] })),
-        apiClient('/patients?limit=100').catch(() => ({ data: [] })),
-      ]);
-      setAppointments(aptRes.data || []);
-      setDoctors(docRes.data || []);
-      setDepartments(deptRes.data || []);
-      setPatients(patRes.data || []);
+      const aptPromise = apiClient(`/appointments?${queryParams.toString()}`).catch(() => ({ data: [] }));
+
+      // Use cached static data (Doctors & Departments) if valid for 5 minutes
+      let cachedDocs = dataCache.getStatic('doctors_list');
+      let cachedDepts = dataCache.getStatic('departments_list');
+
+      const promises = [aptPromise];
+      const fetchDocs = !cachedDocs;
+      const fetchDepts = !cachedDepts;
+      const fetchPats = patients.length === 0;
+
+      if (fetchDocs) promises.push(apiClient('/staff?role=DOCTOR').catch(() => ({ data: [] })));
+      if (fetchDepts) promises.push(apiClient('/departments').catch(() => ({ data: [] })));
+      if (fetchPats) promises.push(apiClient('/patients?limit=100').catch(() => ({ data: [] })));
+
+      const results = await Promise.all(promises);
+      const aptRes = results[0];
+      let pIdx = 1;
+
+      if (fetchDocs) {
+        cachedDocs = results[pIdx++]?.data || [];
+        dataCache.set('doctors_list', cachedDocs);
+      }
+      if (fetchDepts) {
+        cachedDepts = results[pIdx++]?.data || [];
+        dataCache.set('departments_list', cachedDepts);
+      }
+      if (fetchPats) {
+        const patRes = results[pIdx++]?.data || [];
+        setPatients(patRes);
+      }
+
+      setAppointments(aptRes?.data || []);
+      setDoctors(cachedDocs || []);
+      setDepartments(cachedDepts || []);
     } catch (err) {
       toast.error('Failed to load appointments roster.');
     } finally {
       setLoading(false);
+      setIsFiltering(false);
     }
   };
 
   useEffect(() => {
-    fetchRecords();
-  }, [dateFilter, selectedDoctorFilter, statusFilter]);
+    setPage(1);
+    fetchRecords(appointments.length > 0);
+  }, [appliedDate, selectedDoctorFilter, statusFilter]);
 
   // Fetch slots for booking modal
   useEffect(() => {
     if (!modalDoctorId || !modalDate) {
       setModalSlots([]);
+      setSelectedSlots([]);
       return;
     }
     const loadSlots = async () => {
       try {
-        const res = await apiClient(`/appointments/slots?doctorId=${modalDoctorId}&date=${modalDate}`);
+        setSelectedSlots([]);
+        const patParam = modalPatientId ? `&patientId=${modalPatientId}` : '';
+        const res = await apiClient(`/appointments/slots?doctorId=${modalDoctorId}&date=${modalDate}${patParam}&_t=${Date.now()}`);
         setModalSlots(res.data || []);
       } catch (e) {
         setModalSlots([]);
       }
     };
     loadSlots();
-  }, [modalDoctorId, modalDate]);
+  }, [modalDoctorId, modalDate, modalPatientId]);
 
   const handleQuickRegisterPatient = async (e) => {
     e.preventDefault();
@@ -126,8 +188,8 @@ export default function ReceptionistScheduleView() {
       toast.error('Please select or register a patient.');
       return;
     }
-    if (!selectedSlot) {
-      toast.error('Please select an available slot.');
+    if (selectedSlots.length === 0) {
+      toast.error('Please select at least one available slot.');
       return;
     }
 
@@ -140,15 +202,18 @@ export default function ReceptionistScheduleView() {
           patientId: modalPatientId,
           doctorId: modalDoctorId,
           departmentId: doc?.departmentId?._id || doc?.departmentId,
-          startAt: selectedSlot.startAt,
-          endAt: selectedSlot.endAt,
-          reason: modalReason,
+          slots: selectedSlots.map((s) => s.startAt),
+          reason: modalReason || 'General checkup',
           appointmentType: 'WALK_IN',
         },
       });
-      toast.success('Appointment created successfully.');
+      toast.success(
+        selectedSlots.length > 1
+          ? `${selectedSlots.length} appointment slots booked successfully.`
+          : 'Appointment created successfully.'
+      );
       setBookingModal(false);
-      setSelectedSlot(null);
+      setSelectedSlots([]);
       setModalReason('');
       fetchRecords();
     } catch (err) {
@@ -207,6 +272,9 @@ export default function ReceptionistScheduleView() {
     }
   };
 
+  const totalPages = Math.ceil(appointments.length / limit) || 1;
+  const paginatedAppointments = appointments.slice((page - 1) * limit, page * limit);
+
   return (
     <div className="receptionist-schedule-container">
       {/* Top Action & Roster Bar */}
@@ -218,7 +286,7 @@ export default function ReceptionistScheduleView() {
             Hospital-wide appointment management, walk-in registration, check-in triage, and doctor shift configuration.
           </p>
         </div>
-        <div className="header-actions">
+        <div className="header-actions reception-header-actions">
           <Button variant="neutral" onClick={() => setScheduleModal(true)}>
             ⚙ Config Doctor Shift
           </Button>
@@ -230,14 +298,25 @@ export default function ReceptionistScheduleView() {
 
       {/* Filter Ribbon */}
       <div className="reception-filter-ribbon">
-        <div className="ribbon-field">
+        <div className="ribbon-field ribbon-field-date">
           <label>Schedule Date:</label>
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="field-input-sm"
-          />
+          <div className="date-input-group">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="field-input-sm"
+            />
+            <button
+              type="button"
+              className="btn-apply-date"
+              disabled={dateFilter === appliedDate}
+              onClick={() => setAppliedDate(dateFilter)}
+              title="Apply Date Filter"
+            >
+              Apply
+            </button>
+          </div>
         </div>
 
         <div className="ribbon-field">
@@ -274,11 +353,17 @@ export default function ReceptionistScheduleView() {
 
         <div className="ribbon-stats-badge">
           Showing <strong>{appointments.length}</strong> patient bookings
+          {isFiltering && <span className="filtering-pulse-dot" title="Refreshing live bookings..."></span>}
         </div>
       </div>
 
       {/* Roster Table */}
-      <div className="reception-table-card">
+      <div className={`reception-table-card ${isFiltering ? 'filtering' : ''}`}>
+        {isFiltering && (
+          <div className="table-filter-progress-bar">
+            <div className="filter-progress-indeterminate"></div>
+          </div>
+        )}
         {loading ? (
           <div className="doc-table-loader">Loading appointments schedule...</div>
         ) : appointments.length === 0 ? (
@@ -287,76 +372,92 @@ export default function ReceptionistScheduleView() {
             <span>Click "+ Book Appointment" to schedule a walk-in patient.</span>
           </div>
         ) : (
-          <table className="reception-queue-table">
-            <thead>
-              <tr>
-                <th>Code &amp; Time</th>
-                <th>Patient Details</th>
-                <th>Assigned Doctor</th>
-                <th>Department</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Front Desk Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((apt) => {
-                const time12 = new Date(apt.startAt).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                });
-                const pat = apt.patientId || {};
-                const doc = apt.doctorId || {};
+          <div className="reception-table-wrap">
+            <table className="reception-queue-table">
+              <thead>
+                <tr>
+                  <th>Code &amp; Time</th>
+                  <th>Patient Details</th>
+                  <th>Assigned Doctor</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Front Desk Actions</th>
+                </tr>
+              </thead>
+              <tbody className="fade-in-rows">
+                {paginatedAppointments.map((apt) => {
+                  const time12 = formatTimeRange(apt.startAt, apt.endAt);
+                  const pat = apt.patientId || {};
+                  const doc = apt.doctorId || {};
 
-                return (
-                  <tr key={apt._id}>
-                    <td>
-                      <div className="apt-table-code">{apt.appointmentCode}</div>
-                      <div className="apt-table-time">{time12}</div>
-                    </td>
-                    <td>
-                      <div className="pat-table-name">{pat.name || 'Patient'}</div>
-                      <div className="pat-table-phone">{pat.phone} • {pat.patientCode}</div>
-                    </td>
-                    <td>
-                      <div className="doc-table-name">{doc.name}</div>
-                    </td>
-                    <td>
-                      <span className="dept-pill">{apt.departmentId?.name || 'OPD'}</span>
-                    </td>
-                    <td>
-                      <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="reception-action-btns">
-                        {apt.status === 'CONFIRMED' && (
-                          <button
-                            type="button"
-                            className="btn-reception-checkin"
-                            onClick={() => handleQuickStatusChange(apt._id, 'CHECKED_IN')}
-                          >
-                            Check In
-                          </button>
-                        )}
-                        {['CONFIRMED', 'CHECKED_IN'].includes(apt.status) && (
-                          <button
-                            type="button"
-                            className="btn-reception-cancel"
-                            onClick={() => handleQuickStatusChange(apt._id, 'CANCELLED')}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        {apt.status === 'CANCELLED' && (
-                          <span className="cancelled-note-chip">Cancelled</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr key={apt._id} className="smooth-table-row">
+                      <td>
+                        <div className="apt-table-code">{apt.appointmentCode}</div>
+                        <div className="apt-table-time">{time12}</div>
+                      </td>
+                      <td>
+                        <div className="pat-table-name">{pat.name || 'Patient'}</div>
+                        <div className="pat-table-phone">{pat.phone} • {pat.patientCode}</div>
+                      </td>
+                      <td>
+                        <div className="doc-table-name">{doc.name}</div>
+                      </td>
+                      <td>
+                        <span className="dept-pill">{apt.departmentId?.name || 'OPD'}</span>
+                      </td>
+                      <td>
+                        <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="reception-action-btns">
+                          {apt.status === 'CONFIRMED' && (
+                            <button
+                              type="button"
+                              className="btn-reception-checkin"
+                              onClick={() => handleQuickStatusChange(apt._id, 'CHECKED_IN')}
+                            >
+                              Check In
+                            </button>
+                          )}
+                          {['CONFIRMED', 'CHECKED_IN'].includes(apt.status) && (
+                            <button
+                              type="button"
+                              className="btn-reception-cancel"
+                              onClick={() => handleQuickStatusChange(apt._id, 'CANCELLED')}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                          {apt.status === 'CANCELLED' && (
+                            <span className="cancelled-note-chip">Cancelled</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="reception-table-spacer"></div>
+          </div>
+        )}
+
+        {appointments.length > 0 && (
+          <div className="reception-pagination-wrap">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={appointments.length}
+              limit={limit}
+              onPageChange={setPage}
+              onLimitChange={(newLimit) => {
+                setLimit(newLimit);
+                setPage(1);
+              }}
+              itemName="appointments"
+            />
+          </div>
         )}
       </div>
 
@@ -426,27 +527,33 @@ export default function ReceptionistScheduleView() {
             </div>
 
             <div className="slot-selection-section" style={{ margin: '1rem 0' }}>
-              <label className="field-label">Available Slots</label>
+              <label className="field-label">
+                Available Slots {selectedSlots.length > 0 && <span style={{ color: '#047857', fontWeight: 600 }}>({selectedSlots.length} selected)</span>}
+              </label>
               {modalSlots.length === 0 ? (
                 <div className="no-slots-alert">No available slots for selected doctor on this date.</div>
               ) : (
                 <div className="slots-pill-group">
                   {modalSlots.map((s, idx) => {
-                    const isChosen = selectedSlot?.startAt === s.startAt;
-                    const timeStr = new Date(s.startAt).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    });
+                    const isChosen = selectedSlots.some((slot) => slot.startAt === s.startAt);
+                    const timeStr = formatTimeRange(s.startAt, s.endAt);
                     return (
                       <button
                         key={idx}
                         type="button"
                         disabled={!s.isAvailable}
-                        onClick={() => setSelectedSlot(s)}
+                        title={!s.isAvailable ? (s.conflictReason || 'Already booked') : `Slot: ${timeStr}`}
+                        onClick={() => {
+                          setSelectedSlots((prev) => {
+                            if (prev.some((slot) => slot.startAt === s.startAt)) {
+                              return prev.filter((slot) => slot.startAt !== s.startAt);
+                            }
+                            return [...prev, s];
+                          });
+                        }}
                         className={`slot-btn-pill ${isChosen ? 'chosen' : ''} ${!s.isAvailable ? 'disabled' : ''}`}
                       >
-                        {timeStr}
+                        {timeStr} {isChosen ? '✓' : ''}
                       </button>
                     );
                   })}
@@ -469,8 +576,12 @@ export default function ReceptionistScheduleView() {
               <Button variant="neutral" onClick={() => setBookingModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" disabled={savingBooking || !selectedSlot}>
-                {savingBooking ? 'Booking...' : 'Confirm Walk-in Booking'}
+              <Button type="submit" variant="primary" disabled={savingBooking || selectedSlots.length === 0}>
+                {savingBooking
+                  ? 'Booking...'
+                  : selectedSlots.length > 1
+                  ? `Confirm ${selectedSlots.length} Slots Booking`
+                  : 'Confirm Walk-in Booking'}
               </Button>
             </div>
           </form>

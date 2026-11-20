@@ -43,10 +43,10 @@ appointmentRouter.post(
   rescheduleAppointment
 );
 
-// Update status (Confirm, Complete, Cancel, No-Show): Clinicians & Front desk
+// Update status (Confirm, Complete, Cancel, No-Show): Clinicians, Front desk, Patients
 appointmentRouter.patch(
   "/:id/status",
-  authorize("SUPER_ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST", "DOCTOR"),
+  authorize("SUPER_ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST", "DOCTOR", "PATIENT"),
   updateAppointmentStatus
 );
 

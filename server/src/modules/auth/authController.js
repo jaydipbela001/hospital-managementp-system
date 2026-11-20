@@ -21,8 +21,16 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Email and password are required.");
   }
 
-  // 2. Find user in database
-  const user = await User.findOne({ email: email.toLowerCase() }).select("+passwordHash");
+  // 2. Find user in database (supporting common aliases e.g. receptionist@, doctor@, patient@)
+  let normalizedEmail = email.toLowerCase().trim();
+  if (normalizedEmail === "receptionist@hospital.local") {
+    normalizedEmail = "reception@hospital.local";
+  } else if (normalizedEmail === "doctor@hospital.local") {
+    normalizedEmail = "doctor1@hospital.local";
+  } else if (normalizedEmail === "patient@hospital.local") {
+    normalizedEmail = "patient1@hospital.local";
+  }
+  const user = await User.findOne({ email: normalizedEmail }).select("+passwordHash");
   if (!user) {
     throw new ApiError(401, "Invalid email or password.");
   }

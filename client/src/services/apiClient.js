@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/+$/, '');
+const API_BASE = rawBase.endsWith('/api/v1') ? rawBase : `${rawBase}/api/v1`;
 
 export async function apiClient(endpoint, options = {}) {
   const { body, headers = {}, ...customOptions } = options;
@@ -11,6 +12,7 @@ export async function apiClient(endpoint, options = {}) {
     headers: {
       ...(!isFormData && { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
+      'X-Tunnel-Skip-Anti-Abuse': 'true',
       ...headers,
     },
     credentials: 'include', // sends HTTP-only cookies

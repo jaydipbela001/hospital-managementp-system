@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuth } from '../../app/providers/AuthContext';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { PwaInstallModal } from '../../components/common/PwaInstallModal/PwaInstallModal';
 import './AdminLayout.css';
 
 export function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const { canInstall, triggerInstall, showGuideModal, setShowGuideModal, isIOS } = usePwaInstall();
   const profileContainerRef = useRef(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -34,6 +38,7 @@ export function AdminLayout({ children }) {
   const handleLogout = async () => {
     setProfileOpen(false);
     await logout();
+    toast.info('Signed out successfully.');
     navigate('/login', { replace: true });
   };
 
@@ -125,6 +130,15 @@ export function AdminLayout({ children }) {
             <span className="user-role-tag">Signed in as</span>
             <span className="user-name">{user?.name || 'User'}</span>
           </div>
+          {canInstall && (
+            <button
+              type="button"
+              className="sidebar-pwa-install-btn"
+              onClick={triggerInstall}
+            >
+              📲 Install App on Phone
+            </button>
+          )}
         </div>
       </aside>
 
@@ -145,6 +159,16 @@ export function AdminLayout({ children }) {
           </div>
 
           <div className="topbar-right">
+            {canInstall && (
+              <button
+                type="button"
+                className="btn-pwa-install"
+                onClick={triggerInstall}
+                title="Install application on your device"
+              >
+                📲 Install App
+              </button>
+            )}
             <div className="topbar-profile-container" ref={profileContainerRef}>
               <button
                 type="button"
@@ -195,6 +219,12 @@ export function AdminLayout({ children }) {
           {children}
         </main>
       </div>
+
+      <PwaInstallModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+        isIOS={isIOS}
+      />
     </div>
   );
 }

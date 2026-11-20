@@ -16,6 +16,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(
   helmet({
@@ -31,8 +32,13 @@ const allowedOrigins = process.env.CLIENT_ORIGIN
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow requests with no origin (like mobile apps or curl)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // allow requests with no origin (like mobile apps, curl, or same-origin)
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.includes("devtunnels.ms") ||
+        process.env.NODE_ENV === "development"
+      ) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));

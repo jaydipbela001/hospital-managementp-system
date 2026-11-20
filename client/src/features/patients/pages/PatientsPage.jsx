@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
+import { dataCache } from '../../../services/dataCache';
 import { PageHeader, Button, Input, Modal, Loader, Pagination } from '../../../components/common';
 
 export default function PatientsPage() {
   const navigate = useNavigate();
-  const [patients, setPatients] = useState([]);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const cached = dataCache.get('patients_page_1');
+  const [patients, setPatients] = useState(cached?.data || []);
+  const [initialLoading, setInitialLoading] = useState(!cached);
   const [isSearching, setIsSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [meta, setMeta] = useState(cached?.meta || { page: 1, limit: 10, total: 0, totalPages: 1 });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -55,6 +57,9 @@ export default function PatientsPage() {
         setPatients(res?.data || []);
         if (res?.meta) {
           setMeta(res.meta);
+        }
+        if (!term && pageNum === 1) {
+          dataCache.set('patients_page_1', { data: res?.data || [], meta: res?.meta });
         }
       }
     } catch (err) {

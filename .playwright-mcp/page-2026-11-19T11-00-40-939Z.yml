@@ -1,0 +1,88 @@
+- generic [ref=f1e6]:
+  - generic [ref=f1e7]:
+    - complementary [ref=f1e8]:
+      - generic [ref=f1e9]:
+        - generic [aria-hidden] [ref=f1e10]: +
+        - generic [ref=f1e11]:
+          - generic [ref=f1e12]: LifeCare HMS
+          - generic [ref=f1e13]: Patient portal
+      - navigation [ref=f1e14]:
+        - link "Dashboard" [ref=f1e15] [cursor=pointer]:
+          - /url: /appointments
+        - link "Book a visit" [ref=f1e17] [cursor=pointer]:
+          - /url: /appointments?tab=book
+        - link "My appointments" [ref=f1e19] [cursor=pointer]:
+          - /url: /appointments?tab=my
+      - generic [ref=f1e22]:
+        - generic [ref=f1e23]: Signed in as
+        - generic [ref=f1e24]: Jaydip Bela
+    - generic [ref=f1e25]:
+      - banner [ref=f1e26]:
+        - generic [ref=f1e27]: Main Hospital Campus
+        - button "J Jaydip Bela" [ref=f1e31] [cursor=pointer]:
+          - generic [ref=f1e32]: J
+          - generic [ref=f1e33]: Jaydip Bela
+          - generic [aria-hidden] [ref=f1e34]: ▾
+      - main [ref=f1e35]:
+        - generic [ref=f1e37]:
+          - generic [ref=f1e39]:
+            - heading "Good morning, Jaydip" [level=1] [ref=f1e40]
+            - paragraph [ref=f1e41]: Find a specialist, pick a free slot and keep track of every visit here.
+          - generic [ref=f1e42]:
+            - generic [ref=f1e43]:
+              - generic [ref=f1e44]: "0"
+              - generic [ref=f1e45]: Total visits
+            - generic [ref=f1e46]:
+              - generic [ref=f1e47]: "0"
+              - generic [ref=f1e48]: Upcoming
+            - generic [ref=f1e49]:
+              - generic [ref=f1e50]: "0"
+              - generic [ref=f1e51]: Cancelled
+          - generic [ref=f1e52]:
+            - generic [ref=f1e53]:
+              - heading "Book a visit" [level=2] [ref=f1e54]
+              - paragraph [ref=f1e55]: Search by doctor name or specialty, then choose a time.
+              - generic [ref=f1e56]:
+                - textbox "Search doctors" [ref=f1e57]
+                - combobox [ref=f1e58]:
+                  - option "All departments" [selected]
+                  - option "Cardiology"
+                  - option "General Medicine"
+              - generic [ref=f1e59]:
+                - generic [ref=f1e60]:
+                  - generic [ref=f1e61]: J
+                  - generic [ref=f1e62]:
+                    - generic [ref=f1e63]: Dr. Jenil Shah
+                    - generic [ref=f1e64]: Consultant Physician · General Medicine · 5+ yrs
+                    - generic [ref=f1e65]: Free consultation
+                  - button "Book" [ref=f1e66] [cursor=pointer]
+                - generic [ref=f1e67]:
+                  - generic [ref=f1e68]: S
+                  - generic [ref=f1e69]:
+                    - generic [ref=f1e70]: Dr. Sarah Mitchell
+                    - generic [ref=f1e71]: Cardiologist · Cardiology · 5+ yrs
+                    - generic [ref=f1e72]: ₹75
+                  - button "Selected" [ref=f1e83] [cursor=pointer]
+              - generic [ref=f1e84]:
+                - generic [ref=f1e85]:
+                  - generic [ref=f1e86]: Choose time for Dr. Sarah Mitchell
+                  - button "✕" [ref=f1e87] [cursor=pointer]
+                - generic [ref=f1e88]:
+                  - generic [ref=f1e89]: Date
+                  - textbox [ref=f1e90]: 2026-11-20
+                - generic [ref=f1e91]:
+                  - generic [ref=f1e92]: Available Slots
+                  - generic [ref=f1e93]:
+                    - button "9:00 AM" [ref=f1e94] [cursor=pointer]
+                    - button "9:30 AM" [active] [ref=f1e95] [cursor=pointer]
+                    - button "10:00 AM" [ref=f1e96] [cursor=pointer]
+                    - button "10:30 AM" [ref=f1e97] [cursor=pointer]
+                - button "Confirm visit booking" [ref=f1e99] [cursor=pointer]
+            - generic [ref=f1e74]:
+              - heading "My appointments" [level=2] [ref=f1e75]
+              - paragraph [ref=f1e76]: Live status of your consultations.
+              - generic [ref=f1e77]:
+                - button "Upcoming" [ref=f1e78] [cursor=pointer]
+                - button "All" [ref=f1e79] [cursor=pointer]
+              - paragraph [ref=f1e82]: No upcoming appointments.
+  - region "Notifications Alt+T"

@@ -1,0 +1,129 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - complementary [ref=e8]:
+      - generic [ref=e9]:
+        - generic [aria-hidden] [ref=e10]: +
+        - generic [ref=e11]:
+          - generic [ref=e12]: LifeCare HMS
+          - generic [ref=e13]: Patient portal
+      - navigation [ref=e14]:
+        - link "Dashboard" [ref=e15] [cursor=pointer]:
+          - /url: /appointments
+        - link "Book a visit" [ref=e17] [cursor=pointer]:
+          - /url: /appointments?tab=book
+        - link "My appointments" [ref=e19] [cursor=pointer]:
+          - /url: /appointments?tab=my
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: Signed in as
+          - generic [ref=e24]: Jaydip Bela
+        - button "📲 Install App on Phone" [ref=e25] [cursor=pointer]
+    - generic [ref=e26]:
+      - banner [ref=e27]:
+        - generic [ref=e28]: Main Hospital Campus
+        - generic [ref=e30]:
+          - button "📲 Install App" [ref=e31] [cursor=pointer]
+          - button "J Jaydip Bela" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]: J
+            - generic [ref=e35]: Jaydip Bela
+            - generic [aria-hidden] [ref=e36]: ▾
+      - main [ref=e37]:
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - heading "Good morning, Jaydip" [level=1] [ref=e42]
+              - paragraph [ref=e43]: Find a specialist, pick a free slot and keep track of every visit here.
+            - generic [ref=e44]:
+              - generic [ref=e45]: Your next visit
+              - generic [ref=e46]: Dr. Jenil Shah
+              - generic [ref=e47]: 20 Nov 2026 · 10:15 AM
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - generic [ref=e50]: 📅
+              - generic [ref=e51]: 10Total visits
+            - generic [ref=e52]:
+              - generic [ref=e53]: ⏱️
+              - generic [ref=e54]: 7Upcoming
+            - generic [ref=e55]:
+              - generic [ref=e56]: ✕
+              - generic [ref=e57]: 1Cancelled
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - heading "Book a visit" [level=2] [ref=e60]
+              - paragraph [ref=e61]: Search by doctor name or specialty, then choose a time.
+              - generic [ref=e62]:
+                - textbox "Search doctors" [ref=e63]
+                - combobox [ref=e64]:
+                  - option "All departments" [selected]
+                  - option "Cardiology"
+                  - option "General Medicine"
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - generic [ref=e67]: JS
+                  - generic [ref=e68]:
+                    - generic [ref=e69]: Dr. Jenil Shah
+                    - generic [ref=e70]: Consultant Physician · 5+ yrs
+                    - generic [ref=e71]: Free consultation
+                  - button "Book" [ref=e72] [cursor=pointer]
+                - generic [ref=e73]:
+                  - generic [ref=e74]: SM
+                  - generic [ref=e75]:
+                    - generic [ref=e76]: Dr. Sarah Mitchell
+                    - generic [ref=e77]: Cardiologist · 5+ yrs
+                    - generic [ref=e78]: ₹75 per visit
+                  - button "Book" [ref=e79] [cursor=pointer]
+            - generic [ref=e80]:
+              - heading "My appointments" [level=2] [ref=e81]
+              - paragraph [ref=e82]: Live status of your consultations.
+              - generic [ref=e83]:
+                - button "Upcoming" [ref=e84] [cursor=pointer]
+                - button "All" [ref=e85] [cursor=pointer]
+              - generic [ref=e86]:
+                - generic [ref=e87]:
+                  - generic [ref=e88]: NOV20
+                  - generic [ref=e89]:
+                    - generic [ref=e90]: Dr. Jenil Shah
+                    - generic [ref=e91]: General Medicine · 10:15 AM · APT-2026-0009
+                  - generic [ref=e92]:
+                    - text: Confirmed
+                    - generic [ref=e93]:
+                      - button "Reschedule" [ref=e94]
+                      - button "Cancel" [ref=e95]
+                - generic [ref=e96]:
+                  - generic [ref=e97]: NOV20
+                  - generic [ref=e98]:
+                    - generic [ref=e99]: Dr. Sarah Mitchell
+                    - generic [ref=e100]: Cardiology · 10:30 AM · ₹75 · APT-2026-0007
+                  - generic [ref=e101]:
+                    - text: Confirmed
+                    - generic [ref=e102]:
+                      - button "Reschedule" [ref=e103]
+                      - button "Cancel" [ref=e104]
+                - generic [ref=e105]:
+                  - generic [ref=e106]: NOV20
+                  - generic [ref=e107]:
+                    - generic [ref=e108]: Dr. Sarah Mitchell
+                    - generic [ref=e109]: Cardiology · 11:30 AM · ₹75 · APT-2026-0010
+                  - generic [ref=e110]:
+                    - text: Confirmed
+                    - generic [ref=e111]:
+                      - button "Reschedule" [ref=e112]
+                      - button "Cancel" [ref=e113]
+                - generic [ref=e114]:
+                  - generic [ref=e115]: NOV20
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: Dr. Sarah Mitchell
+                    - generic [ref=e118]: Cardiology · 2:00 PM · ₹75 · APT-2026-0003
+                  - generic [ref=e119]:
+                    - text: Confirmed
+                    - generic [ref=e120]:
+                      - button "Reschedule" [ref=e121]
+                      - button "Cancel" [ref=e122]
+              - generic [ref=e124]:
+                - generic [ref=e125]: Showing 1 to 4 of 7 visits
+                - generic [ref=e127]:
+                  - button "Previous Page" [disabled] [ref=e128]: ‹ Previous
+                  - button "1" [ref=e129] [cursor=pointer]
+                  - button "2" [ref=e130] [cursor=pointer]
+                  - button "Next Page" [ref=e131] [cursor=pointer]: Next ›
+  - region "Notifications Alt+T"

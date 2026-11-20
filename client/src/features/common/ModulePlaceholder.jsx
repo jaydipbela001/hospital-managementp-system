@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'react-toastify';
 import { PageHeader, EmptyState, Button } from '../../components/common';
 
 export function ModulePlaceholder({
@@ -13,7 +14,7 @@ export function ModulePlaceholder({
         title={moduleName}
         subtitle={description}
         actions={
-          <Button variant="outline" size="sm" onClick={() => alert(`Module scheduled for ${plannedPhase}`)}>
+          <Button variant="outline" size="sm" onClick={() => toast.info(`Module scheduled for ${plannedPhase}`)}>
             View Documentation
           </Button>
         }

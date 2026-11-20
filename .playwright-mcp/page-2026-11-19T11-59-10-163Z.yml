@@ -1,0 +1,52 @@
+- generic [ref=e2]:
+  - generic [ref=e41]:
+    - complementary [ref=e42]:
+      - generic [ref=e43]:
+        - generic [aria-hidden] [ref=e44]: +
+        - generic [ref=e45]:
+          - generic [ref=e46]: LifeCare HMS
+          - generic [ref=e47]: Patient portal
+        - button "Close navigation menu" [ref=e48] [cursor=pointer]: ×
+      - navigation [ref=e49]:
+        - link "Dashboard" [ref=e50] [cursor=pointer]:
+          - /url: /appointments
+        - link "Book a visit" [ref=e52] [cursor=pointer]:
+          - /url: /appointments?tab=book
+        - link "My appointments" [ref=e54] [cursor=pointer]:
+          - /url: /appointments?tab=my
+      - generic [ref=e57]:
+        - generic [ref=e58]: Signed in as
+        - generic [ref=e59]: Jaydip Bela
+    - generic [ref=e60]:
+      - banner [ref=e61]:
+        - button "Toggle navigation drawer" [ref=e63] [cursor=pointer]: ☰
+        - button "J" [ref=e66] [cursor=pointer]:
+          - generic [aria-hidden] [ref=e68]: ▾
+      - main [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - generic [ref=e72]: Patient Portal
+            - heading "Welcome, Jaydip Bela" [level=1] [ref=e73]
+            - paragraph [ref=e74]: Self-service healthcare booking, doctor profiles, and appointment history.
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e78]: Account
+                - generic [ref=e79]: Verified
+              - generic [ref=e80]: Active Patient
+              - generic [ref=e81]: Self-service enabled
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - generic [ref=e84]: Bookings
+                - generic [ref=e85]: Specialists
+              - generic [ref=e86]: Open Slots
+              - generic [ref=e87]: Cardiology, General OPD, etc.
+          - generic [ref=e88]:
+            - heading "Quick Actions & Workspaces" [level=2] [ref=e89]
+            - generic [ref=e91] [cursor=pointer]:
+              - generic [ref=e92]: 🩺
+              - generic [ref=e93]:
+                - generic [ref=e94]: Open Patient Portal
+                - generic [ref=e95]: Book consultations & view visits
+              - generic [ref=e96]: →
+  - region "Notifications Alt+T"

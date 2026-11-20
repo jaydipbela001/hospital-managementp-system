@@ -1,8 +1,10 @@
+import mongoose from "mongoose";
 import { Appointment } from "../../models/Appointment.js";
 import { DoctorSchedule } from "../../models/DoctorSchedule.js";
 import { User } from "../../models/User.js";
 import { DoctorProfile } from "../../models/DoctorProfile.js";
 import { Patient } from "../../models/Patient.js";
+import { Department } from "../../models/Department.js";
 import { ApiError } from "../../utils/ApiError.js";
 
 // Generates next appointment code e.g. APT-2026-0001
@@ -56,13 +58,14 @@ export const getAppointments = async (req, res, next) => {
 
     const skip = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
     const take = parseInt(limit, 10);
+    const sortDir = req.query.sortOrder === "desc" ? -1 : (req.query.sortOrder === "asc" || req.user.role === "PATIENT" ? 1 : -1);
 
     const [appointments, total] = await Promise.all([
       Appointment.find(filter)
         .populate("patientId", "name patientCode phone gender bloodGroup email")
         .populate("doctorId", "name email phone")
         .populate("departmentId", "name code")
-        .sort({ startAt: -1 })
+        .sort({ startAt: sortDir })
         .skip(skip)
         .limit(take),
       Appointment.countDocuments(filter),
@@ -85,6 +88,7 @@ export const getAppointments = async (req, res, next) => {
 
 export const getAvailableSlots = async (req, res, next) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const { doctorId, date } = req.query;
     if (!doctorId || !date) {
       throw new ApiError(400, "doctorId and date (YYYY-MM-DD) are required.");
@@ -95,10 +99,14 @@ export const getAvailableSlots = async (req, res, next) => {
     const targetDate = new Date(year, month - 1, day, 0, 0, 0);
     const dayOfWeek = targetDate.getDay();
 
-    const schedule = await DoctorSchedule.findOne({ doctorId });
+    const docObjId = mongoose.Types.ObjectId.isValid(doctorId)
+      ? new mongoose.Types.ObjectId(doctorId)
+      : doctorId;
+
+    const schedule = await DoctorSchedule.findOne({ doctorId: docObjId });
     // Filter all shifts for the target day of week
     const matchingShifts = schedule
-      ? schedule.weeklyAvailability?.filter((w) => w.dayOfWeek === dayOfWeek) || []
+      ? schedule.weeklyAvailability?.filter((w) => Number(w.dayOfWeek) === Number(dayOfWeek)) || []
       : (dayOfWeek >= 1 && dayOfWeek <= 5 ? [{ startTime: "09:00", endTime: "17:00" }] : []);
 
     const slotMinutes = schedule?.slotDurationMinutes || 30;
@@ -118,11 +126,27 @@ export const getAvailableSlots = async (req, res, next) => {
     const dayRangeEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
 
     const booked = await Appointment.find({
-      doctorId,
+      doctorId: docObjId,
       status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
       startAt: { $lte: dayRangeEnd },
       endAt: { $gte: dayRangeStart },
     });
+
+    // Also check patient busy intervals if patientId is provided or user is a PATIENT
+    let patientBooked = [];
+    let patientIdToCheck = req.query.patientId;
+    if (!patientIdToCheck && req.user && req.user.role === "PATIENT") {
+      const pat = await Patient.findOne({ userId: req.user.id || req.user._id });
+      if (pat) patientIdToCheck = pat._id;
+    }
+    if (patientIdToCheck) {
+      patientBooked = await Appointment.find({
+        patientId: patientIdToCheck,
+        status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
+        startAt: { $lte: dayRangeEnd },
+        endAt: { $gte: dayRangeStart },
+      });
+    }
 
     const now = new Date();
     const slots = [];
@@ -141,7 +165,13 @@ export const getAvailableSlots = async (req, res, next) => {
         const slotEnd = new Date(current.getTime() + slotMinutes * 60000);
         if (slotEnd > shiftEnd) break;
 
-        const isBooked = booked.some((b) => {
+        const isDoctorBooked = booked.some((b) => {
+          const bStart = new Date(b.startAt).getTime();
+          const bEnd = new Date(b.endAt).getTime();
+          return bStart < slotEnd.getTime() && bEnd > current.getTime();
+        });
+
+        const isPatientBooked = patientBooked.some((b) => {
           const bStart = new Date(b.startAt).getTime();
           const bEnd = new Date(b.endAt).getTime();
           return bStart < slotEnd.getTime() && bEnd > current.getTime();
@@ -150,11 +180,19 @@ export const getAvailableSlots = async (req, res, next) => {
         // Do not show past time slots for current day
         const isPast = current.getTime() <= now.getTime();
 
+        const isAvailable = !isDoctorBooked && !isPatientBooked;
+        const conflictReason = isDoctorBooked
+          ? "Doctor booked"
+          : isPatientBooked
+          ? "You already have an appointment at this time"
+          : null;
+
         if (!isPast) {
           slots.push({
             startAt: new Date(current),
             endAt: slotEnd,
-            isAvailable: !isBooked,
+            isAvailable,
+            conflictReason,
           });
         }
 
@@ -210,38 +248,51 @@ export const createAppointment = async (req, res, next) => {
     }
 
     // Verify doctor exists and has role DOCTOR
-    const doctor = await User.findById(doctorId);
+    const docObjId = mongoose.Types.ObjectId.isValid(doctorId)
+      ? new mongoose.Types.ObjectId(doctorId)
+      : doctorId;
+
+    const doctor = await User.findById(docObjId);
     if (!doctor || doctor.role !== "DOCTOR") {
       throw new ApiError(404, "Doctor not found or invalid.");
     }
 
-    const doctorProfile = await DoctorProfile.findOne({ userId: doctorId });
+    const doctorProfile = await DoctorProfile.findOne({ userId: docObjId });
     const finalDepartmentId = departmentId || doctor.departmentId || doctorProfile?.departmentId || null;
     const consultationFee = doctorProfile?.consultationFee || 0;
-    const schedule = await DoctorSchedule.findOne({ doctorId });
+    const schedule = await DoctorSchedule.findOne({ doctorId: docObjId });
     const slotMinutes = schedule?.slotDurationMinutes || 30;
 
-    // Sort unique slot start timestamps chronologically
-    const sortedTimestamps = Array.from(
-      new Set(rawSlots.map((s) => new Date(s).getTime()))
-    ).sort((a, b) => a - b);
+    // Normalize raw slots (supports ISO strings or { startAt, endAt } objects)
+    const normalizedSlots = rawSlots.map((s) => {
+      if (typeof s === "object" && s !== null && s.startAt) {
+        const start = new Date(s.startAt);
+        const end = s.endAt ? new Date(s.endAt) : new Date(start.getTime() + slotMinutes * 60000);
+        return { startAt: start, endAt: end };
+      }
+      const start = new Date(s);
+      const end = new Date(start.getTime() + slotMinutes * 60000);
+      return { startAt: start, endAt: end };
+    });
 
-    // Merge contiguous (back-to-back) slots into unified session ranges
+    // Sort by startAt ascending
+    normalizedSlots.sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+
+    // Merge contiguous (back-to-back) or overlapping slots into unified session ranges
     const mergedSessions = [];
-    for (const time of sortedTimestamps) {
-      const slotStart = new Date(time);
-      const slotEnd = new Date(time + slotMinutes * 60000);
-
+    for (const slot of normalizedSlots) {
       const prevSession = mergedSessions[mergedSessions.length - 1];
-      if (prevSession && prevSession.endAt.getTime() === slotStart.getTime()) {
-        // Contiguous back-to-back: extend current session
-        prevSession.endAt = slotEnd;
+      if (prevSession && prevSession.endAt.getTime() >= slot.startAt.getTime()) {
+        // Contiguous back-to-back: extend current session if this slot ends later
+        if (slot.endAt.getTime() > prevSession.endAt.getTime()) {
+          prevSession.endAt = slot.endAt;
+        }
         prevSession.slotCount += 1;
       } else {
         // Discontinuous or first slot: start a new session
         mergedSessions.push({
-          startAt: slotStart,
-          endAt: slotEnd,
+          startAt: new Date(slot.startAt),
+          endAt: new Date(slot.endAt),
           slotCount: 1,
         });
       }
@@ -258,9 +309,44 @@ export const createAppointment = async (req, res, next) => {
         );
       }
 
-      // Check interval slot conflicts for doctor
+      // Strictly validate that requested slot falls within doctor's active working hours
+      const sessStart = new Date(session.startAt);
+      const sessEnd = new Date(session.endAt);
+      const sessDayOfWeek = sessStart.getDay();
+      const pad = (n) => String(n).padStart(2, "0");
+      const dateStr = `${sessStart.getFullYear()}-${pad(sessStart.getMonth() + 1)}-${pad(sessStart.getDate())}`;
+
+      const isException = schedule?.exceptions?.find((e) => e.date === dateStr && !e.isAvailable);
+      if (isException) {
+        throw new ApiError(400, `Doctor is unavailable on ${dateStr}: ${isException.reason || "On Leave"}`);
+      }
+
+      const dayShifts = schedule
+        ? schedule.weeklyAvailability?.filter((w) => Number(w.dayOfWeek) === Number(sessDayOfWeek)) || []
+        : (sessDayOfWeek >= 1 && sessDayOfWeek <= 5 ? [{ startTime: "09:00", endTime: "17:00" }] : []);
+
+      if (dayShifts.length === 0) {
+        throw new ApiError(400, "Doctor has no active consultation hours configured for this day.");
+      }
+
+      const sessStartH = `${pad(sessStart.getHours())}:${pad(sessStart.getMinutes())}`;
+      const sessEndH = `${pad(sessEnd.getHours())}:${pad(sessEnd.getMinutes())}`;
+
+      const fitsInShift = dayShifts.some((shift) => {
+        return sessStartH >= shift.startTime && sessEndH <= shift.endTime;
+      });
+
+      if (!fitsInShift) {
+        throw new ApiError(
+          400,
+          `The selected appointment time (${sessStartH} – ${sessEndH}) is outside the doctor's working schedule.`
+        );
+      }
+
+      // Check interval slot conflicts for doctor (excluding appointments created in this request)
       const doctorConflict = await Appointment.findOne({
-        doctorId,
+        _id: { $nin: createdAppointments.map((a) => a._id) },
+        doctorId: docObjId,
         status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
         startAt: { $lt: session.endAt },
         endAt: { $gt: session.startAt },
@@ -273,8 +359,9 @@ export const createAppointment = async (req, res, next) => {
         );
       }
 
-      // Check interval slot conflicts for patient
+      // Check interval slot conflicts for patient (excluding appointments created in this request)
       const patientConflict = await Appointment.findOne({
+        _id: { $nin: createdAppointments.map((a) => a._id) },
         patientId: resolvedPatientId,
         status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
         startAt: { $lt: session.endAt },
@@ -293,7 +380,7 @@ export const createAppointment = async (req, res, next) => {
       const apt = await Appointment.create({
         appointmentCode,
         patientId: resolvedPatientId,
-        doctorId,
+        doctorId: docObjId,
         departmentId: finalDepartmentId,
         startAt: session.startAt,
         endAt: session.endAt,
@@ -355,6 +442,16 @@ export const updateAppointmentStatus = async (req, res, next) => {
     if (!appointment) throw new ApiError(404, "Appointment not found.");
 
     // Status transition rules & role checks
+    if (req.user.role === "PATIENT") {
+      if (status !== "CANCELLED") {
+        throw new ApiError(403, "Patients can only cancel appointments.");
+      }
+      const patient = await Patient.findOne({ userId: req.user.id || req.user._id });
+      if (!patient || appointment.patientId.toString() !== patient._id.toString()) {
+        throw new ApiError(403, "You can only cancel your own appointments.");
+      }
+    }
+
     if (req.user.role === "DOCTOR") {
       if (appointment.doctorId.toString() !== (req.user.id || req.user._id).toString()) {
         throw new ApiError(403, "You can only manage appointments assigned to you.");
@@ -407,16 +504,21 @@ export const updateAppointmentStatus = async (req, res, next) => {
 
 export const getDoctorSchedule = async (req, res, next) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const doctorId = req.query.doctorId || (req.user.role === "DOCTOR" ? (req.user.id || req.user._id) : null);
     if (!doctorId) {
       throw new ApiError(400, "Doctor ID is required.");
     }
 
-    let schedule = await DoctorSchedule.findOne({ doctorId });
+    const docObjId = mongoose.Types.ObjectId.isValid(doctorId)
+      ? new mongoose.Types.ObjectId(doctorId)
+      : doctorId;
+
+    let schedule = await DoctorSchedule.findOne({ doctorId: docObjId });
     if (!schedule) {
       // Default working hours Mon-Fri (1-5) 09:00 - 17:00
       schedule = {
-        doctorId,
+        doctorId: docObjId,
         slotDurationMinutes: 30,
         weeklyAvailability: [1, 2, 3, 4, 5].map((dayOfWeek) => ({
           dayOfWeek,
@@ -442,12 +544,22 @@ export const updateDoctorSchedule = async (req, res, next) => {
 
     const { weeklyAvailability, slotDurationMinutes, exceptions } = req.body;
 
+    const docObjId = mongoose.Types.ObjectId.isValid(doctorId)
+      ? new mongoose.Types.ObjectId(doctorId)
+      : doctorId;
+
+    const formattedAvailability = (weeklyAvailability || []).map((w) => ({
+      dayOfWeek: Number(w.dayOfWeek),
+      startTime: String(w.startTime).trim(),
+      endTime: String(w.endTime).trim(),
+    }));
+
     const schedule = await DoctorSchedule.findOneAndUpdate(
-      { doctorId },
+      { doctorId: docObjId },
       {
-        doctorId,
-        weeklyAvailability: weeklyAvailability || [],
-        slotDurationMinutes: slotDurationMinutes || 30,
+        doctorId: docObjId,
+        weeklyAvailability: formattedAvailability,
+        slotDurationMinutes: Number(slotDurationMinutes) || 30,
         exceptions: exceptions || [],
       },
       { new: true, upsert: true }
@@ -466,11 +578,7 @@ export const updateDoctorSchedule = async (req, res, next) => {
 export const rescheduleAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { startAt, endAt, reason } = req.body;
-
-    if (!startAt) {
-      throw new ApiError(400, "New appointment date & time (startAt) is required.");
-    }
+    const { startAt, endAt, slots: rawSlots, reason } = req.body;
 
     const appointment = await Appointment.findById(id);
     if (!appointment) throw new ApiError(404, "Original appointment not found.");
@@ -487,13 +595,45 @@ export const rescheduleAppointment = async (req, res, next) => {
       }
     }
 
-    const newStart = new Date(startAt);
-    const duration = appointment.endAt && appointment.startAt
-      ? appointment.endAt.getTime() - appointment.startAt.getTime()
-      : 30 * 60 * 1000;
-    const newEnd = endAt ? new Date(endAt) : new Date(newStart.getTime() + duration);
+    let newStart;
+    let newEnd;
+    let slotCount = 1;
 
-    // Verify slot is not double-booked
+    if (Array.isArray(rawSlots) && rawSlots.length > 0) {
+      const schedule = await DoctorSchedule.findOne({ doctorId: appointment.doctorId });
+      const slotMinutes = schedule?.slotDurationMinutes || 30;
+
+      const normalizedSlots = rawSlots.map((s) => {
+        if (typeof s === "object" && s !== null && s.startAt) {
+          const start = new Date(s.startAt);
+          const end = s.endAt ? new Date(s.endAt) : new Date(start.getTime() + slotMinutes * 60000);
+          return { startAt: start, endAt: end };
+        }
+        const start = new Date(s);
+        const end = new Date(start.getTime() + slotMinutes * 60000);
+        return { startAt: start, endAt: end };
+      });
+
+      normalizedSlots.sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+      newStart = normalizedSlots[0].startAt;
+      newEnd = normalizedSlots[normalizedSlots.length - 1].endAt;
+      slotCount = normalizedSlots.length;
+    } else if (startAt) {
+      newStart = new Date(startAt);
+      const duration = appointment.endAt && appointment.startAt
+        ? appointment.endAt.getTime() - appointment.startAt.getTime()
+        : 30 * 60 * 1000;
+      newEnd = endAt ? new Date(endAt) : new Date(newStart.getTime() + duration);
+    } else {
+      throw new ApiError(400, "New appointment date & time is required.");
+    }
+
+    const now = new Date();
+    if (newStart.getTime() <= now.getTime()) {
+      throw new ApiError(400, "Cannot reschedule appointment to a time in the past.");
+    }
+
+    // Verify slot is not double-booked for doctor
     const existingConflict = await Appointment.findOne({
       _id: { $ne: appointment._id },
       doctorId: appointment.doctorId,
@@ -505,6 +645,18 @@ export const rescheduleAppointment = async (req, res, next) => {
       throw new ApiError(409, "The selected doctor already has a booked appointment at that time.");
     }
 
+    // Verify slot is not double-booked for patient
+    const patientConflict = await Appointment.findOne({
+      _id: { $ne: appointment._id },
+      patientId: appointment.patientId,
+      status: { $in: ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS"] },
+      startAt: { $lt: newEnd },
+      endAt: { $gt: newStart },
+    });
+    if (patientConflict) {
+      throw new ApiError(409, "You already have another active appointment at that time.");
+    }
+
     // Save previous times and update
     const previousDateStr = appointment.startAt.toISOString();
     appointment.startAt = newStart;
@@ -513,7 +665,7 @@ export const rescheduleAppointment = async (req, res, next) => {
     appointment.statusHistory.push({
       status: "CONFIRMED",
       changedBy: req.user.id || req.user._id,
-      note: `Rescheduled from ${previousDateStr}. Reason: ${reason || "Patient request"}`,
+      note: `Rescheduled to ${slotCount > 1 ? slotCount + ' slots' : 'new time'} from ${previousDateStr}. Reason: ${reason || "Patient request"}`,
       changedAt: new Date(),
     });
 

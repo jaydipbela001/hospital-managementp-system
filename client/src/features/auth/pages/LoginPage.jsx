@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { Button } from '../../../components/common';
 import { useAuth } from '../../../app/providers/AuthContext';
+import { usePwaInstall } from '../../../hooks/usePwaInstall';
+import { PwaInstallModal } from '../../../components/common/PwaInstallModal/PwaInstallModal';
 import loginBg from '../../../assets/images/login.png';
 import logoImg from '../../../assets/images/logo.png';
 import './LoginPage.css';
@@ -18,6 +21,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login, registerPatient } = useAuth();
+  const { canInstall, triggerInstall, showGuideModal, setShowGuideModal, isIOS } = usePwaInstall();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,22 +33,29 @@ export function LoginPage() {
 
     if (authMode === 'login') {
       if (!email || !password) {
-        setError('Please provide both email and password.');
+        const msg = 'Please provide both email and password.';
+        setError(msg);
+        toast.error(msg);
         return;
       }
 
       setLoading(true);
       try {
         await login(email, password);
+        toast.success('Signed in successfully!');
         navigate(from, { replace: true });
       } catch (err) {
-        setError(err.message || 'Login failed. Please check credentials.');
+        const msg = err.message || 'Login failed. Please check credentials.';
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
     } else {
       if (!name || !email || !password || !phone) {
-        setError('Please fill in Name, Phone, Email, and Password.');
+        const msg = 'Please fill in Name, Phone, Email, and Password.';
+        setError(msg);
+        toast.error(msg);
         return;
       }
 
@@ -58,9 +69,12 @@ export function LoginPage() {
           gender,
           bloodGroup,
         });
+        toast.success('Account created successfully!');
         navigate('/appointments', { replace: true });
       } catch (err) {
-        setError(err.message || 'Registration failed. Please try again.');
+        const msg = err.message || 'Registration failed. Please try again.';
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -72,6 +86,17 @@ export function LoginPage() {
       className="modern-login-layout"
       style={{ backgroundImage: `url(${loginBg})` }}
     >
+      {canInstall && (
+        <button
+          type="button"
+          className="login-pwa-install-top-btn"
+          onClick={triggerInstall}
+          title="Install LifeCare app on your phone"
+        >
+          📲 Install App
+        </button>
+      )}
+
       {/* Left Content Column */}
       <div className="modern-left-column">
         {/* Top Logo */}
@@ -448,6 +473,12 @@ export function LoginPage() {
           )}
         </div>
       </div>
+
+      <PwaInstallModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+        isIOS={isIOS}
+      />
     </div>
   );
 }

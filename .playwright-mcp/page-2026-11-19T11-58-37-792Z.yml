@@ -1,0 +1,32 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img "LifeCare HMS" [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]: Smart Hospital Management
+        - heading "Better Care. Smarter Management." [level=1] [ref=e9]
+    - generic [ref=e11]:
+      - generic [ref=e12]: ✚
+      - generic [ref=e14]:
+        - button "Sign In" [ref=e15] [cursor=pointer]
+        - button "Patient Sign Up" [ref=e16] [cursor=pointer]
+      - heading "Hospital Portal Login" [level=2] [ref=e17]
+      - paragraph [ref=e18]: Sign in to access medical records, consultations, and hospital operations.
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Email Address *
+          - textbox "Email Address *" [ref=e23]:
+            - /placeholder: name@hospital.com
+        - generic [ref=e24]:
+          - generic [ref=e25]: Password *
+          - generic [ref=e26]:
+            - textbox "Password *" [ref=e27]:
+              - /placeholder: ••••••••
+            - button "Show password" [ref=e28] [cursor=pointer]
+        - button "Sign In to System" [ref=e34] [cursor=pointer]
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - generic [ref=e38]: ✔
+            - generic [ref=e39]: Secure & Trusted
+          - paragraph [ref=e40]: 🔒 256-Bit SSL Encrypted • HIPAA Compliant Architecture
+  - region "Notifications Alt+T"

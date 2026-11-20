@@ -2,6 +2,8 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--color-bg);
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Sidebar Styles */
@@ -189,6 +191,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: calc(100% - var(--sidebar-width));
 }
 
 .admin-topbar {
@@ -335,6 +338,8 @@
   max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Responsive Breakpoints */
@@ -354,6 +359,39 @@
 
   .admin-main {
     margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-content {
+    padding: 12px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-topbar {
+    padding: 0 12px;
+  }
+
+  .topbar-left {
+    gap: 8px;
+  }
+
+  .topbar-hospital-name {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  .profile-menu-trigger .profile-name {
+    display: none;
+  }
+
+  .btn-pwa-install {
+    padding: 4px 8px;
+    font-size: 0.725rem;
   }
 
   .menu-toggle-btn {
@@ -368,7 +406,48 @@
   }
 
   .admin-content {
-    padding: var(--space-4);
+    padding: 12px;
   }
 }
+
+/* PWA Install Button */
+.btn-pwa-install {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 12px;
+  background-color: var(--color-primary-700);
+  color: #ffffff;
+  border: 1px solid var(--color-primary-800);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pwa-install:hover {
+  background-color: var(--color-primary-800);
+  transform: translateY(-1px);
+}
+
+.sidebar-pwa-install-btn {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: 8px 12px;
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-800);
+  border: 1px dashed var(--color-primary-400);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-pwa-install-btn:hover {
+  background-color: var(--color-primary-100);
+}
+
 

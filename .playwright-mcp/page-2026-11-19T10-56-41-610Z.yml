@@ -1,0 +1,57 @@
+- generic [ref=e2]:
+  - generic [ref=e64]:
+    - complementary [ref=e65]:
+      - generic [ref=e66]:
+        - generic [aria-hidden] [ref=e67]: +
+        - generic [ref=e68]:
+          - generic [ref=e69]: LifeCare HMS
+          - generic [ref=e70]: Patient portal
+      - navigation [ref=e71]:
+        - link "Dashboard" [ref=e72] [cursor=pointer]:
+          - /url: /appointments
+        - link "Book a visit" [active] [ref=e74] [cursor=pointer]:
+          - /url: /appointments?tab=book
+        - link "My appointments" [ref=e76] [cursor=pointer]:
+          - /url: /appointments?tab=my
+      - generic [ref=e79]:
+        - generic [ref=e80]: Signed in as
+        - generic [ref=e81]: Jaydip Bela
+    - generic [ref=e82]:
+      - banner [ref=e83]:
+        - generic [ref=e84]: Main Hospital Campus
+        - button "J Jaydip Bela" [ref=e88] [cursor=pointer]:
+          - generic [ref=e89]: J
+          - generic [ref=e90]: Jaydip Bela
+          - generic [aria-hidden] [ref=e91]: ▾
+      - main [ref=e92]:
+        - generic [ref=e121]:
+          - generic [ref=e123]:
+            - heading "Good morning, Jaydip" [level=1] [ref=e124]
+            - paragraph [ref=e125]: Find a specialist, pick a free slot and keep track of every visit here.
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e128]: "0"
+              - generic [ref=e129]: Total visits
+            - generic [ref=e130]:
+              - generic [ref=e131]: "0"
+              - generic [ref=e132]: Upcoming
+            - generic [ref=e133]:
+              - generic [ref=e134]: "0"
+              - generic [ref=e135]: Cancelled
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - heading "Book a visit" [level=2] [ref=e138]
+              - paragraph [ref=e139]: Search by doctor name or specialty, then choose a time.
+              - generic [ref=e140]:
+                - textbox "Search doctors" [ref=e141]
+                - combobox [ref=e142]:
+                  - option "All departments" [selected]
+              - generic [ref=e143]: No doctors available matching your search.
+            - generic [ref=e145]:
+              - heading "My appointments" [level=2] [ref=e146]
+              - paragraph [ref=e147]: Live status of your consultations.
+              - generic [ref=e148]:
+                - button "Upcoming" [ref=e149] [cursor=pointer]
+                - button "All" [ref=e150] [cursor=pointer]
+              - paragraph [ref=e153]: No upcoming appointments.
+  - region "Notifications Alt+T"

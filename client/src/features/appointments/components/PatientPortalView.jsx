@@ -2,26 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
+import { dataCache } from '../../../services/dataCache';
 import { useAuth } from '../../../app/providers/AuthContext';
-import { Modal, Button } from '../../../components/common';
+import { Modal, Button, Pagination, ConfirmDialog } from '../../../components/common';
 import '../pages/AppointmentsPage.css';
+
+const formatTimeRange = (startAt, endAt) => {
+  if (!startAt) return '';
+  const sStr = new Date(startAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  if (!endAt) return sStr;
+  const eStr = new Date(endAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${sStr} - ${eStr}`;
+};
 
 export default function PatientPortalView() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'dashboard';
+  const currentTab = (searchParams.get('tab') || 'dashboard').toLowerCase();
+  const showBook = currentTab === 'dashboard' || currentTab === 'book';
+  const showAppointments = currentTab === 'dashboard' || currentTab === 'my';
 
-  const [departments, setDepartments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
-  const [myAppointments, setMyAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedDepts = dataCache.getStatic('departments_list');
+  const cachedDocs = dataCache.getStatic('doctors_list');
+  const cachedApts = dataCache.get('patient_appointments');
+
+  const [departments, setDepartments] = useState(cachedDepts || []);
+  const [doctors, setDoctors] = useState(cachedDocs || []);
+  const [myAppointments, setMyAppointments] = useState(cachedApts || []);
+  const [loading, setLoading] = useState(!cachedApts && !cachedDocs);
 
   // Filters & State
   const [searchDoctor, setSearchDoctor] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [appointmentFilter, setAppointmentFilter] = useState('UPCOMING'); // 'UPCOMING' | 'ALL'
 
-  // Booking Modal / Drawer state
+  // Pagination states
+  const [docPage, setDocPage] = useState(1);
+  const docLimit = 5;
+  const [aptPage, setAptPage] = useState(1);
+  const aptLimit = 4;
+
+  // Booking Modal / Popup state
   const [bookingDoctor, setBookingDoctor] = useState(null);
   const [bookingDate, setBookingDate] = useState(() => {
     const tomorrow = new Date();
@@ -29,30 +58,49 @@ export default function PatientPortalView() {
     return tomorrow.toISOString().split('T')[0];
   });
   const [slots, setSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
-  const [bookedToastMessage, setBookedToastMessage] = useState('');
 
   // Reschedule state
   const [rescheduleModal, setRescheduleModal] = useState(false);
   const [targetAppointment, setTargetAppointment] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleSlots, setRescheduleSlots] = useState([]);
-  const [selectedRescheduleSlot, setSelectedRescheduleSlot] = useState(null);
+  const [selectedRescheduleSlots, setSelectedRescheduleSlots] = useState([]);
   const [rescheduling, setRescheduling] = useState(false);
+
+  // Cancel Confirmation state
+  const [cancelTargetId, setCancelTargetId] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      const [deptRes, docRes, aptRes] = await Promise.all([
-        apiClient('/departments').catch(() => ({ data: [] })),
-        apiClient('/staff?role=DOCTOR').catch(() => ({ data: [] })),
+      const hasInitialCache = dataCache.getStatic('doctors_list') || dataCache.get('patient_appointments');
+      if (!hasInitialCache) setLoading(true);
+
+      const cachedDeptsLocal = dataCache.getStatic('departments_list');
+      const cachedDocsLocal = dataCache.getStatic('doctors_list');
+
+      const promises = [
+        cachedDeptsLocal ? Promise.resolve({ data: cachedDeptsLocal }) : apiClient('/departments').catch(() => ({ data: [] })),
+        cachedDocsLocal ? Promise.resolve({ data: cachedDocsLocal }) : apiClient('/staff?role=DOCTOR').catch(() => ({ data: [] })),
         apiClient('/appointments').catch(() => ({ data: [] })),
-      ]);
-      setDepartments(deptRes.data || []);
-      setDoctors(docRes.data || []);
-      setMyAppointments(aptRes.data || []);
+      ];
+
+      const [deptRes, docRes, aptRes] = await Promise.all(promises);
+
+      const deptData = deptRes.data || [];
+      const docData = docRes.data || [];
+      const aptData = aptRes.data || [];
+
+      setDepartments(deptData);
+      setDoctors(docData);
+      setMyAppointments(aptData);
+
+      dataCache.set('departments_list', deptData);
+      dataCache.set('doctors_list', docData);
+      dataCache.set('patient_appointments', aptData);
     } catch (err) {
       toast.error('Failed to load patient data.');
     } finally {
@@ -62,7 +110,19 @@ export default function PatientPortalView() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentTab]);
+
+  // Lock body scroll when doctor booking popup is open
+  useEffect(() => {
+    if (bookingDoctor) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [bookingDoctor]);
 
   // Fetch slots for booking doctor
   useEffect(() => {
@@ -73,8 +133,8 @@ export default function PatientPortalView() {
     const loadSlots = async () => {
       try {
         setLoadingSlots(true);
-        setSelectedSlot(null);
-        const res = await apiClient(`/appointments/slots?doctorId=${bookingDoctor._id}&date=${bookingDate}`);
+        setSelectedSlots([]);
+        const res = await apiClient(`/appointments/slots?doctorId=${bookingDoctor._id}&date=${bookingDate}&_t=${Date.now()}`);
         setSlots(res.data || []);
       } catch (err) {
         setSlots([]);
@@ -89,12 +149,14 @@ export default function PatientPortalView() {
   useEffect(() => {
     if (!targetAppointment || !rescheduleDate) {
       setRescheduleSlots([]);
+      setSelectedRescheduleSlots([]);
       return;
     }
     const loadRescheduleSlots = async () => {
       try {
+        setSelectedRescheduleSlots([]);
         const docId = targetAppointment.doctorId?._id || targetAppointment.doctorId;
-        const res = await apiClient(`/appointments/slots?doctorId=${docId}&date=${rescheduleDate}`);
+        const res = await apiClient(`/appointments/slots?doctorId=${docId}&date=${rescheduleDate}&_t=${Date.now()}`);
         setRescheduleSlots(res.data || []);
       } catch (err) {
         setRescheduleSlots([]);
@@ -103,42 +165,55 @@ export default function PatientPortalView() {
     loadRescheduleSlots();
   }, [targetAppointment, rescheduleDate]);
 
+  const handleToggleSlot = (slot) => {
+    if (!slot.isAvailable) return;
+    const timeIso = slot.startAt;
+    setSelectedSlots((prev) => {
+      if (prev.includes(timeIso)) {
+        return prev.filter((t) => t !== timeIso);
+      }
+      return [...prev, timeIso].sort();
+    });
+  };
+
   const handleConfirmBooking = async () => {
-    if (!selectedSlot) {
-      toast.error('Please select an available time slot.');
+    if (selectedSlots.length === 0) {
+      toast.error('Please select at least one available time slot.');
       return;
     }
 
     try {
       setBookingSubmitting(true);
+      const slotObjects = selectedSlots.map((timeIso) => {
+        const found = slots.find((s) => s.startAt === timeIso);
+        return found ? { startAt: found.startAt, endAt: found.endAt } : { startAt: timeIso };
+      });
+
       await apiClient('/appointments', {
         method: 'POST',
         body: {
           doctorId: bookingDoctor._id,
           departmentId: bookingDoctor.departmentId?._id || bookingDoctor.departmentId,
-          startAt: selectedSlot.startAt,
-          endAt: selectedSlot.endAt,
+          slots: slotObjects,
           reason: 'General consultation',
           appointmentType: 'FIRST_VISIT',
         },
       });
 
-      const dateDisplay = new Date(selectedSlot.startAt).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-      const timeDisplay = new Date(selectedSlot.startAt).toLocaleTimeString('en-US', {
+      const firstTime = new Date(selectedSlots[0]).toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
       });
 
-      setBookedToastMessage(`Booked for ${dateDisplay}, ${timeDisplay}`);
-      setTimeout(() => setBookedToastMessage(''), 4500);
+      toast.success(
+        selectedSlots.length > 1
+          ? `Successfully booked ${selectedSlots.length} visit slots starting at ${firstTime}!`
+          : `Successfully booked visit for ${firstTime}!`
+      );
 
       setBookingDoctor(null);
-      setSelectedSlot(null);
+      setSelectedSlots([]);
       fetchData();
     } catch (err) {
       toast.error(err.message || 'Failed to book appointment.');
@@ -147,43 +222,66 @@ export default function PatientPortalView() {
     }
   };
 
-  const handleCancelAppointment = async (aptId) => {
-    if (!window.confirm('Are you sure you want to cancel this appointment visit?')) return;
-
+  const handleCancelAppointment = async () => {
+    if (!cancelTargetId) return;
     try {
-      await apiClient(`/appointments/${aptId}/status`, {
+      setCancelling(true);
+      await apiClient(`/appointments/${cancelTargetId}/status`, {
         method: 'PATCH',
         body: {
           status: 'CANCELLED',
           cancelReason: 'Cancelled by patient',
         },
       });
-      toast.success('Appointment cancelled.');
+      toast.success('Appointment cancelled successfully.');
+      setCancelTargetId(null);
       fetchData();
     } catch (err) {
       toast.error(err.message || 'Failed to cancel appointment.');
+    } finally {
+      setCancelling(false);
     }
   };
 
+  const handleToggleRescheduleSlot = (slot) => {
+    if (!slot.isAvailable) return;
+    const timeIso = slot.startAt;
+    setSelectedRescheduleSlots((prev) => {
+      if (prev.includes(timeIso)) {
+        return prev.filter((t) => t !== timeIso);
+      }
+      return [...prev, timeIso].sort();
+    });
+  };
+
   const handleConfirmReschedule = async () => {
-    if (!selectedRescheduleSlot) {
-      toast.error('Please choose a new time slot.');
+    if (selectedRescheduleSlots.length === 0) {
+      toast.error('Please choose at least one time slot.');
       return;
     }
 
     try {
       setRescheduling(true);
+      const slotObjects = selectedRescheduleSlots.map((timeIso) => {
+        const found = rescheduleSlots.find((s) => s.startAt === timeIso);
+        return found ? { startAt: found.startAt, endAt: found.endAt } : { startAt: timeIso };
+      });
+
       await apiClient(`/appointments/${targetAppointment._id}/reschedule`, {
         method: 'POST',
         body: {
-          startAt: selectedRescheduleSlot.startAt,
-          endAt: selectedRescheduleSlot.endAt,
+          slots: slotObjects,
           reason: 'Patient requested reschedule',
         },
       });
-      toast.success('Appointment rescheduled successfully.');
+      toast.success(
+        selectedRescheduleSlots.length > 1
+          ? `Appointment rescheduled to ${selectedRescheduleSlots.length} slots successfully.`
+          : 'Appointment rescheduled successfully.'
+      );
       setRescheduleModal(false);
       setTargetAppointment(null);
+      setSelectedRescheduleSlots([]);
       fetchData();
     } catch (err) {
       toast.error(err.message || 'Failed to reschedule appointment.');
@@ -203,18 +301,31 @@ export default function PatientPortalView() {
     return matchesDept && matchesSearch;
   });
 
+  const totalDocPages = Math.ceil(filteredDoctors.length / docLimit) || 1;
+  const paginatedDoctors = filteredDoctors.slice((docPage - 1) * docLimit, docPage * docLimit);
+
   const now = new Date();
-  const upcomingAppointments = myAppointments.filter(
-    (apt) => ['CONFIRMED', 'CHECKED_IN'].includes(apt.status) && new Date(apt.startAt) >= now
-  );
-  const cancelledAppointments = myAppointments.filter((apt) => apt.status === 'CANCELLED');
+  const upcomingAppointments = myAppointments
+    .filter(
+      (apt) => ['CONFIRMED', 'CHECKED_IN', 'SCHEDULED'].includes(apt.status) && new Date(apt.startAt) >= now
+    )
+    .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+
+  const cancelledAppointments = myAppointments
+    .filter((apt) => apt.status === 'CANCELLED')
+    .sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
 
   const displayedAppointments =
     appointmentFilter === 'UPCOMING'
       ? upcomingAppointments
-      : myAppointments;
+      : appointmentFilter === 'CANCELLED'
+      ? cancelledAppointments
+      : [...myAppointments].sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
 
-  // Next upcoming visit
+  const totalAptPages = Math.ceil(displayedAppointments.length / aptLimit) || 1;
+  const paginatedAppointments = displayedAppointments.slice((aptPage - 1) * aptLimit, aptPage * aptLimit);
+
+  // Next upcoming visit is strictly the earliest upcoming visit
   const nextVisit = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'Patient';
@@ -243,11 +354,7 @@ export default function PatientPortalView() {
                 year: 'numeric',
               })}{' '}
               ·{' '}
-              {new Date(nextVisit.startAt).toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-              })}
+              {formatTimeRange(nextVisit.startAt, nextVisit.endAt)}
             </div>
           </div>
         )}
@@ -255,24 +362,49 @@ export default function PatientPortalView() {
 
       {/* 3 Metric Summary Cards */}
       <div className="portal-metrics-row">
-        <div className="portal-metric-card">
-          <span className="metric-number">{myAppointments.length}</span>
-          <span className="metric-label">Total visits</span>
+        <div
+          className="portal-metric-card"
+          onClick={() => { setAppointmentFilter('ALL'); setAptPage(1); }}
+          style={{ cursor: 'pointer' }}
+          title="Show all visits"
+        >
+          <div className="portal-metric-icon-box visits">📅</div>
+          <div className="portal-metric-content">
+            <span className="metric-number">{myAppointments.length}</span>
+            <span className="metric-label">Total visits</span>
+          </div>
         </div>
-        <div className="portal-metric-card">
-          <span className="metric-number">{upcomingAppointments.length}</span>
-          <span className="metric-label">Upcoming</span>
+        <div
+          className="portal-metric-card"
+          onClick={() => { setAppointmentFilter('UPCOMING'); setAptPage(1); }}
+          style={{ cursor: 'pointer' }}
+          title="Show upcoming visits"
+        >
+          <div className="portal-metric-icon-box upcoming">⏱️</div>
+          <div className="portal-metric-content">
+            <span className="metric-number">{upcomingAppointments.length}</span>
+            <span className="metric-label">Upcoming</span>
+          </div>
         </div>
-        <div className="portal-metric-card">
-          <span className="metric-number">{cancelledAppointments.length}</span>
-          <span className="metric-label">Cancelled</span>
+        <div
+          className="portal-metric-card"
+          onClick={() => { setAppointmentFilter('CANCELLED'); setAptPage(1); }}
+          style={{ cursor: 'pointer' }}
+          title="Show cancelled visits"
+        >
+          <div className="portal-metric-icon-box cancelled">✕</div>
+          <div className="portal-metric-content">
+            <span className="metric-number">{cancelledAppointments.length}</span>
+            <span className="metric-label">Cancelled</span>
+          </div>
         </div>
       </div>
 
-      {/* Main 2-Column Section */}
-      <div className="portal-two-column-layout">
-        {/* Left Column: Book a visit */}
-        <div className="portal-white-panel">
+      {/* Main Section: Dynamic by Tab (Dashboard shows both, Book a visit or My appointments shows single panel) */}
+      <div className={`portal-two-column-layout ${currentTab !== 'dashboard' ? 'single-panel' : ''}`}>
+        {/* Column: Book a visit */}
+        {showBook && (
+          <div className="portal-white-panel">
           <h2 className="panel-heading">Book a visit</h2>
           <p className="panel-subheading">Search by doctor name or specialty, then choose a time.</p>
 
@@ -282,12 +414,18 @@ export default function PatientPortalView() {
               type="text"
               placeholder="Search doctors"
               value={searchDoctor}
-              onChange={(e) => setSearchDoctor(e.target.value)}
+              onChange={(e) => {
+                setSearchDoctor(e.target.value);
+                setDocPage(1);
+              }}
               className="doc-search-field"
             />
             <select
               value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
+              onChange={(e) => {
+                setSelectedDept(e.target.value);
+                setDocPage(1);
+              }}
               className="doc-dept-field"
             >
               <option value="ALL">All departments</option>
@@ -301,34 +439,39 @@ export default function PatientPortalView() {
 
           {/* Doctor List */}
           <div className="portal-doctor-list">
-            {filteredDoctors.length === 0 ? (
+            {paginatedDoctors.length === 0 ? (
               <div className="no-docs-text">No doctors available matching your search.</div>
             ) : (
-              filteredDoctors.map((doc) => {
-                const initial = doc.name.replace('Dr. ', '').charAt(0).toUpperCase();
-                const spec = doc.doctorProfile?.specialization || 'Consultant physician';
-                const deptName = doc.departmentId?.name || 'General OPD';
+              paginatedDoctors.map((doc) => {
+                const initial = doc.name.replace('Dr. ', '').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+                const spec = doc.doctorProfile?.specialization || 'General Medicine';
                 const fee = doc.doctorProfile?.consultationFee;
-                const isBooking = bookingDoctor?._id === doc._id;
+                const isAmber = doc.name.includes('Sarah') || spec.toLowerCase().includes('cardio');
 
                 return (
-                  <div key={doc._id} className="portal-doctor-row-item">
-                    <div className="doc-avatar-initial">{initial}</div>
+                  <div
+                    key={doc._id}
+                    className="portal-doctor-row-item smooth-card-item"
+                  >
+                    <div className={`doc-avatar-initial ${isAmber ? 'amber' : 'teal'}`}>{initial}</div>
                     <div className="doc-info-block">
                       <div className="doc-full-name">{doc.name}</div>
                       <div className="doc-details-meta">
-                        {spec} · {deptName} · 5+ yrs
+                        {spec} · 5+ yrs
                       </div>
-                      <div className="doc-fee-line">
-                        {fee ? `₹${fee}` : 'Free consultation'}
+                      <div className={`doc-fee-pill ${fee ? 'paid' : 'free'}`}>
+                        {fee ? `₹${fee} per visit` : 'Free consultation'}
                       </div>
                     </div>
                     <button
                       type="button"
-                      className={`btn-book-action ${isBooking ? 'active' : ''}`}
-                      onClick={() => setBookingDoctor(isBooking ? null : doc)}
+                      className="btn-book-action"
+                      onClick={() => {
+                        setSelectedSlots([]);
+                        setBookingDoctor(doc);
+                      }}
                     >
-                      {isBooking ? 'Selected' : 'Book'}
+                      Book
                     </button>
                   </div>
                 );
@@ -336,96 +479,56 @@ export default function PatientPortalView() {
             )}
           </div>
 
-          {/* Inline Slot Picker when a Doctor is Clicked */}
-          {bookingDoctor && (
-            <div className="inline-slot-picker-drawer">
-              <div className="drawer-top-row">
-                <span className="drawer-title-text">
-                  Choose time for {bookingDoctor.name}
-                </span>
-                <button
-                  type="button"
-                  className="drawer-close-link"
-                  onClick={() => setBookingDoctor(null)}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="drawer-date-input-wrap">
-                <label className="drawer-input-label">Date</label>
-                <input
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  className="drawer-date-field"
-                />
-              </div>
-
-              <div className="drawer-slots-container">
-                <label className="drawer-input-label">Available Slots</label>
-                {loadingSlots ? (
-                  <div className="slots-loading-text">Loading open schedule slots...</div>
-                ) : slots.length === 0 ? (
-                  <div className="no-slots-alert">No bookable slots on this date.</div>
-                ) : (
-                  <div className="drawer-slots-pill-grid">
-                    {slots.map((s, idx) => {
-                      const isSelected = selectedSlot?.startAt === s.startAt;
-                      const timeStr = new Date(s.startAt).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                      });
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          disabled={!s.isAvailable}
-                          onClick={() => setSelectedSlot(s)}
-                          className={`slot-chip-button ${isSelected ? 'selected' : ''} ${!s.isAvailable ? 'booked' : ''}`}
-                        >
-                          {timeStr}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="drawer-action-row">
-                <button
-                  type="button"
-                  className="btn-confirm-visit-teal"
-                  disabled={bookingSubmitting || !selectedSlot}
-                  onClick={handleConfirmBooking}
-                >
-                  {bookingSubmitting ? 'Confirming...' : 'Confirm visit booking'}
-                </button>
-              </div>
+          {filteredDoctors.length > docLimit && (
+            <div className="portal-pagination-wrap">
+              <Pagination
+                page={docPage}
+                totalPages={totalDocPages}
+                total={filteredDoctors.length}
+                limit={docLimit}
+                onPageChange={setDocPage}
+                itemName="doctors"
+              />
             </div>
           )}
         </div>
+        )}
 
-        {/* Right Column: My Appointments */}
+        {/* Column: My Appointments */}
+        {showAppointments && (
         <div className="portal-white-panel">
           <h2 className="panel-heading">My appointments</h2>
           <p className="panel-subheading">Live status of your consultations.</p>
 
-          {/* Tab Filter: Upcoming vs All */}
+          {/* Tab Filter: Upcoming vs Cancelled vs All */}
           <div className="appointment-toggle-bar">
             <button
               type="button"
               className={`apt-toggle-btn ${appointmentFilter === 'UPCOMING' ? 'active' : ''}`}
-              onClick={() => setAppointmentFilter('UPCOMING')}
+              onClick={() => {
+                setAppointmentFilter('UPCOMING');
+                setAptPage(1);
+              }}
             >
               Upcoming
             </button>
             <button
               type="button"
+              className={`apt-toggle-btn ${appointmentFilter === 'CANCELLED' ? 'active' : ''}`}
+              onClick={() => {
+                setAppointmentFilter('CANCELLED');
+                setAptPage(1);
+              }}
+            >
+              Cancelled
+            </button>
+            <button
+              type="button"
               className={`apt-toggle-btn ${appointmentFilter === 'ALL' ? 'active' : ''}`}
-              onClick={() => setAppointmentFilter('ALL')}
+              onClick={() => {
+                setAppointmentFilter('ALL');
+                setAptPage(1);
+              }}
             >
               All
             </button>
@@ -433,84 +536,88 @@ export default function PatientPortalView() {
 
           {/* List of Visits */}
           <div className="portal-visits-list">
-            {displayedAppointments.length === 0 ? (
+            {paginatedAppointments.length === 0 ? (
               <div className="no-appointments-box">
                 <p>No {appointmentFilter.toLowerCase()} appointments.</p>
               </div>
             ) : (
-              displayedAppointments.map((apt) => {
-                const dateStr = new Date(apt.startAt).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                });
-                const timeStr = new Date(apt.startAt).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                });
+              paginatedAppointments.map((apt) => {
+                const dateObj = new Date(apt.startAt);
+                const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                const dayStr = dateObj.getDate();
+                const timeStr = formatTimeRange(apt.startAt, apt.endAt);
                 const canModify = ['CONFIRMED', 'PENDING'].includes(apt.status);
-                const feeVal = apt.consultationFee ? `₹${apt.consultationFee}` : 'Free';
+                const feeVal = apt.consultationFee ? `₹${apt.consultationFee}` : '';
+                const deptName = apt.departmentId?.name || (apt.doctorId?.doctorProfile?.specialization) || 'General Medicine';
+                const isAmber = deptName.toLowerCase().includes('cardio') || (apt.doctorId?.name || '').includes('Sarah');
 
                 return (
-                  <div key={apt._id} className="visit-card-item">
-                    <div className="visit-card-top-row">
-                      <span className="visit-apt-code">{apt.appointmentCode}</span>
-                      <span className={`visit-status-tag ${apt.status.toLowerCase()}`}>
+                  <div
+                    key={apt._id}
+                    className="visit-card-compact-row smooth-card-item"
+                  >
+                    <div className={`visit-date-badge-box ${isAmber ? 'amber' : 'teal'}`}>
+                      <span className="badge-month">{monthStr}</span>
+                      <span className="badge-day">{dayStr}</span>
+                    </div>
+
+                    <div className="visit-main-meta-col">
+                      <div className="visit-compact-doc-name">
+                        Dr. {apt.doctorId?.name?.replace('Dr. ', '') || 'Clinician'}
+                      </div>
+                      <div className="visit-compact-sub-line">
+                        {deptName} · {timeStr} {feeVal ? `· ${feeVal} ` : ''}· {apt.appointmentCode}
+                      </div>
+                    </div>
+
+                    <div className="visit-status-actions-col">
+                      <span className={`visit-compact-status ${apt.status.toLowerCase()}`}>
                         {apt.status === 'CONFIRMED' ? 'Confirmed' : apt.status}
                       </span>
+                      {canModify && (
+                        <div className="visit-compact-links">
+                          <button
+                            type="button"
+                            className="link-compact-reschedule"
+                            onClick={() => {
+                              setTargetAppointment(apt);
+                              setRescheduleDate(new Date(apt.startAt).toISOString().split('T')[0]);
+                              setRescheduleModal(true);
+                            }}
+                          >
+                            Reschedule
+                          </button>
+                          <button
+                            type="button"
+                            className="link-compact-cancel"
+                            onClick={() => setCancelTargetId(apt._id)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="visit-doc-name">
-                      Dr. {apt.doctorId?.name?.replace('Dr. ', '') || 'Clinician'}
-                    </div>
-                    <div className="visit-dept-text">
-                      {apt.departmentId?.name || 'Cardiology'}
-                    </div>
-
-                    <div className="visit-time-fee-bar">
-                      <span className="visit-datetime-str">
-                        {dateStr} · {timeStr}
-                      </span>
-                      <span className="visit-fee-str">{feeVal}</span>
-                    </div>
-
-                    {canModify && (
-                      <div className="visit-actions-footer">
-                        <button
-                          type="button"
-                          className="btn-action-reschedule"
-                          onClick={() => {
-                            setTargetAppointment(apt);
-                            setRescheduleDate(new Date(apt.startAt).toISOString().split('T')[0]);
-                            setRescheduleModal(true);
-                          }}
-                        >
-                          Reschedule
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-action-cancel"
-                          onClick={() => handleCancelAppointment(apt._id)}
-                        >
-                          Cancel visit
-                        </button>
-                      </div>
-                    )}
                   </div>
                 );
               })
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Black Pill Toast in the Bottom Center */}
-      {bookedToastMessage && (
-        <div className="bottom-black-toast-pill">
-          {bookedToastMessage}
+          {displayedAppointments.length > 0 && (
+            <div className="portal-pagination-wrap">
+              <Pagination
+                page={aptPage}
+                totalPages={totalAptPages}
+                total={displayedAppointments.length}
+                limit={aptLimit}
+                onPageChange={setAptPage}
+                itemName="visits"
+              />
+            </div>
+          )}
         </div>
-      )}
+        )}
+      </div>
 
       {/* Reschedule Modal */}
       {rescheduleModal && targetAppointment && (
@@ -532,27 +639,32 @@ export default function PatientPortalView() {
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label className="drawer-input-label">Available Time Slots</label>
+              <div className="slots-header-line" style={{ marginBottom: '0.5rem' }}>
+                <span className="modal-field-label">Available Time Slots</span>
+                <span className="slots-hint-badge">
+                  {selectedRescheduleSlots.length > 0
+                    ? `${selectedRescheduleSlots.length} slot(s) selected`
+                    : 'Tap to select one or multiple slots'}
+                </span>
+              </div>
               {rescheduleSlots.length === 0 ? (
-                <div className="no-slots-alert">No available slots on this date.</div>
+                <div className="slots-empty-box">No available slots on this date.</div>
               ) : (
-                <div className="drawer-slots-pill-grid">
+                <div className="modal-slots-grid">
                   {rescheduleSlots.map((s, idx) => {
-                    const isSelected = selectedRescheduleSlot?.startAt === s.startAt;
-                    const timeStr = new Date(s.startAt).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    });
+                    const isSelected = selectedRescheduleSlots.includes(s.startAt);
+                    const timeStr = formatTimeRange(s.startAt, s.endAt);
                     return (
                       <button
                         key={idx}
                         type="button"
                         disabled={!s.isAvailable}
-                        onClick={() => setSelectedRescheduleSlot(s)}
-                        className={`slot-chip-button ${isSelected ? 'selected' : ''} ${!s.isAvailable ? 'booked' : ''}`}
+                        onClick={() => handleToggleRescheduleSlot(s)}
+                        className={`modal-slot-chip ${isSelected ? 'selected' : ''} ${!s.isAvailable ? 'booked' : ''}`}
+                        title={!s.isAvailable ? (s.conflictReason || 'Already booked') : `Slot: ${timeStr}`}
                       >
                         {timeStr}
+                        {isSelected && <span className="slot-check-icon">✓</span>}
                       </button>
                     );
                   })}
@@ -566,14 +678,138 @@ export default function PatientPortalView() {
               </Button>
               <Button
                 variant="primary"
-                disabled={rescheduling || !selectedRescheduleSlot}
+                disabled={rescheduling || selectedRescheduleSlots.length === 0}
                 onClick={handleConfirmReschedule}
               >
-                {rescheduling ? 'Saving...' : 'Confirm Reschedule'}
+                {rescheduling
+                  ? 'Saving...'
+                  : selectedRescheduleSlots.length > 0
+                  ? `Confirm Reschedule (${selectedRescheduleSlots.length} slots)`
+                  : 'Confirm Reschedule'}
               </Button>
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Cancel Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(cancelTargetId)}
+        onClose={() => setCancelTargetId(null)}
+        onConfirm={handleCancelAppointment}
+        title="Cancel Appointment"
+        message="Are you sure you want to cancel this appointment visit? This action cannot be undone."
+        confirmText="Yes, Cancel Visit"
+        cancelText="Keep Appointment"
+        variant="danger"
+        loading={cancelling}
+      />
+
+      {/* Doctor Consultation Booking Popup Modal */}
+      {bookingDoctor && (
+        <div className="booking-modal-backdrop" onClick={() => setBookingDoctor(null)}>
+          <div className="booking-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="booking-modal-header">
+              <div className="booking-modal-doc-meta">
+                <div className="modal-doc-avatar">
+                  {bookingDoctor.name.replace('Dr. ', '').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="modal-doc-name">{bookingDoctor.name}</h3>
+                  <p className="modal-doc-spec">
+                    {bookingDoctor.doctorProfile?.specialization || 'Consultant Physician'} · {bookingDoctor.departmentId?.name || 'General OPD'}
+                  </p>
+                  <span className="modal-doc-fee">
+                    Fee: {bookingDoctor.doctorProfile?.consultationFee ? `₹${bookingDoctor.doctorProfile.consultationFee}` : 'Free consultation'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="booking-modal-close-btn"
+                onClick={() => setBookingDoctor(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="booking-modal-body">
+              <div className="booking-modal-date-row">
+                <label className="modal-field-label">Appointment Date</label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={bookingDate}
+                  onChange={(e) => {
+                    setBookingDate(e.target.value);
+                    setSelectedSlots([]);
+                  }}
+                  className="modal-date-input"
+                />
+              </div>
+
+              <div className="booking-modal-slots-section">
+                <div className="slots-header-line">
+                  <span className="modal-field-label">Available Time Slots</span>
+                  <span className="slots-hint-badge">
+                    {selectedSlots.length > 0
+                      ? `${selectedSlots.length} slot(s) selected`
+                      : 'Tap to select one or multiple slots'}
+                  </span>
+                </div>
+
+                {loadingSlots ? (
+                  <div className="slots-loading-box">Loading open consultation slots...</div>
+                ) : slots.length === 0 ? (
+                  <div className="slots-empty-box">No bookable slots on this date. Please choose another date above.</div>
+                ) : (
+                  <div className="modal-slots-grid">
+                    {slots.map((s, idx) => {
+                      const isSelected = selectedSlots.includes(s.startAt);
+                      const timeStr = formatTimeRange(s.startAt, s.endAt);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={!s.isAvailable}
+                          onClick={() => handleToggleSlot(s)}
+                          className={`modal-slot-chip ${isSelected ? 'selected' : ''} ${!s.isAvailable ? 'booked' : ''}`}
+                          title={!s.isAvailable ? (s.conflictReason || 'Already booked') : `Slot: ${timeStr}`}
+                        >
+                          {timeStr}
+                          {isSelected && <span className="slot-check-icon">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="booking-modal-footer">
+              <button
+                type="button"
+                className="modal-btn-cancel"
+                onClick={() => setBookingDoctor(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="modal-btn-confirm"
+                disabled={bookingSubmitting || selectedSlots.length === 0}
+                onClick={handleConfirmBooking}
+              >
+                {bookingSubmitting
+                  ? 'Booking...'
+                  : selectedSlots.length === 0
+                  ? 'Select a time slot'
+                  : `Confirm booking (${selectedSlots.length} slot${selectedSlots.length > 1 ? 's' : ''})`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

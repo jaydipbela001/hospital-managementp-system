@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
+import { dataCache } from '../../../services/dataCache';
 import { PageHeader, Button, Input, Select, Modal, Loader, Pagination } from '../../../components/common';
 
 export default function StaffPage() {
-  const [staff, setStaff] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedStaff = dataCache.get('staff_page_1');
+  const cachedDepts = dataCache.get('departments_list');
+
+  const [staff, setStaff] = useState(cachedStaff?.data || []);
+  const [departments, setDepartments] = useState(cachedDepts || []);
+  const [loading, setLoading] = useState(!cachedStaff);
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [meta, setMeta] = useState(cachedStaff?.meta || { page: 1, limit: 10, total: 0, totalPages: 1 });
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -37,6 +41,9 @@ export default function StaffPage() {
       const res = await apiClient(`/staff?${params.toString()}`);
       setStaff(res?.data || []);
       if (res?.meta) setMeta(res.meta);
+      if (!searchTerm && pageNum === 1) {
+        dataCache.set('staff_page_1', { data: res?.data || [], meta: res?.meta });
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,8 +53,16 @@ export default function StaffPage() {
 
   const fetchDepartments = async () => {
     try {
+      const cached = dataCache.getStatic('departments_list');
+      if (cached) {
+        setDepartments(cached);
+        return;
+      }
       const res = await apiClient('/departments');
-      setDepartments(res?.data || []);
+      if (res?.data) {
+        setDepartments(res.data);
+        dataCache.set('departments_list', res.data);
+      }
     } catch (err) {
       console.error(err);
     }

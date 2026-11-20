@@ -1,11 +1,12 @@
 import { User } from "../../models/User.js";
 import { DoctorProfile } from "../../models/DoctorProfile.js";
+import { Department } from "../../models/Department.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { uploadFile } from "../../utils/storageService.js";
 
 export const getStaff = async (req, res, next) => {
   try {
-    const { role, departmentId, search, status, page = 1, limit = 10 } = req.query;
+    const { role, departmentId, search, status, page = 1, limit = 50 } = req.query;
     const filter = { role: { $ne: "PATIENT" } };
 
     if (role) filter.role = role;

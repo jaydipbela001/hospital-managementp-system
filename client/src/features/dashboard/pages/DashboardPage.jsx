@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../app/providers/AuthContext';
 import { Badge } from '../../../components/common';
+import apiClient from '../../../services/apiClient';
+import { dataCache } from '../../../services/dataCache';
 import './DashboardPage.css';
 
 export function DashboardPage() {
@@ -9,6 +11,33 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   const role = user?.role || 'DOCTOR';
+
+  // Warm up and prefetch all section data upon login so other tabs load instantly with zero spinners
+  useEffect(() => {
+    if (role === 'RECEPTIONIST') {
+      const today = new Date().toISOString().split('T')[0];
+      // Prefetch in background without blocking dashboard
+      apiClient(`/appointments?date=${today}`).then((res) => {
+        if (res?.data) dataCache.set(`appointments_${today}`, res.data);
+      }).catch(() => {});
+
+      apiClient('/staff?role=DOCTOR').then((res) => {
+        if (res?.data) dataCache.set('doctors_list', res.data);
+      }).catch(() => {});
+
+      apiClient('/departments').then((res) => {
+        if (res?.data) dataCache.set('departments_list', res.data);
+      }).catch(() => {});
+
+      apiClient('/patients?page=1&limit=10').then((res) => {
+        if (res?.data) dataCache.set('patients_page_1', { data: res.data, meta: res.meta });
+      }).catch(() => {});
+
+      apiClient('/staff?page=1&limit=10').then((res) => {
+        if (res?.data) dataCache.set('staff_page_1', { data: res.data, meta: res.meta });
+      }).catch(() => {});
+    }
+  }, [role]);
 
   // Focused 3 Core Roles: Patient, Doctor, Receptionist
   const roleConfig = {

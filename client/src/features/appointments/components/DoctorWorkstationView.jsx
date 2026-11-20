@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
-import { Badge, Button, Modal } from '../../../components/common';
+import { dataCache } from '../../../services/dataCache';
+import { Badge, Button, Modal, Pagination, ConfirmDialog } from '../../../components/common';
 import '../pages/AppointmentsPage.css';
 
 const DAYS = [
@@ -23,16 +24,37 @@ const formatTime12 = (t24) => {
   return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
 };
 
+const formatTimeRange = (startAt, endAt) => {
+  if (!startAt) return '';
+  const sStr = new Date(startAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  if (!endAt) return sStr;
+  const eStr = new Date(endAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${sStr} - ${eStr}`;
+};
+
 export default function DoctorWorkstationView() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isSchedulePath = location.pathname === '/schedule' || searchParams.get('tab')?.toUpperCase() === 'SCHEDULE';
+  const isSchedulePath = location.pathname === '/schedule';
 
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterTab, setFilterTab] = useState(isSchedulePath ? 'SCHEDULE' : 'TODAY'); // 'TODAY' | 'UPCOMING' | 'HISTORY' | 'SCHEDULE'
+  const cachedApts = dataCache.get('doctor_appointments');
+  const [appointments, setAppointments] = useState(cachedApts || []);
+  const [loading, setLoading] = useState(!cachedApts);
+  const [filterTab, setFilterTab] = useState(isSchedulePath ? 'SCHEDULE' : 'TODAY'); // 'TODAY' | 'UPCOMING' | 'HISTORY'
+
+  // Pagination state for appointments queue
+  const [docAptPage, setDocAptPage] = useState(1);
+  const [docAptLimit, setDocAptLimit] = useState(5);
 
   // Per-Day & All-Days Schedule Configuration State
   const defaultDaily = {
@@ -147,15 +169,21 @@ export default function DoctorWorkstationView() {
   const [prescriptions, setPrescriptions] = useState([{ medicine: '', dosage: '1-0-1', duration: '5 days' }]);
   const [savingConsultation, setSavingConsultation] = useState(false);
 
-  const fetchDoctorAppointments = async () => {
+  // Doctor appointment cancellation state
+  const [cancelTargetApt, setCancelTargetApt] = useState(null);
+  const [cancellingApt, setCancellingApt] = useState(false);
+
+  const fetchDoctorAppointments = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground && !dataCache.get('doctor_appointments')) setLoading(true);
       const res = await apiClient('/appointments');
-      setAppointments(res.data || []);
+      const data = res.data || [];
+      setAppointments(data);
+      dataCache.set('doctor_appointments', data);
     } catch (err) {
-      toast.error('Failed to load clinician appointments.');
+      if (!isBackground) toast.error('Failed to load clinician appointments.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -241,6 +269,7 @@ export default function DoctorWorkstationView() {
         },
       });
 
+      await fetchDoctorSchedule();
       toast.success('Your weekly working hours updated successfully!');
       setIsEditingSchedule(false);
     } catch (err) {
@@ -255,7 +284,7 @@ export default function DoctorWorkstationView() {
     fetchDoctorSchedule();
 
     const timer = setInterval(() => {
-      fetchDoctorAppointments();
+      fetchDoctorAppointments(true);
     }, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -291,6 +320,30 @@ export default function DoctorWorkstationView() {
       : filterTab === 'UPCOMING'
       ? upcomingAppointments
       : previousAppointments;
+
+  const totalDocAptPages = Math.ceil(displayedList.length / docAptLimit) || 1;
+  const paginatedList = displayedList.slice((docAptPage - 1) * docAptLimit, docAptPage * docAptLimit);
+
+  const handleCancelByDoctor = async () => {
+    if (!cancelTargetApt) return;
+    try {
+      setCancellingApt(true);
+      await apiClient(`/appointments/${cancelTargetApt._id}/status`, {
+        method: 'PATCH',
+        body: {
+          status: 'CANCELLED',
+          cancelReason: 'Doctor unavailable / leave',
+        },
+      });
+      toast.success(`Appointment ${cancelTargetApt.appointmentCode} has been cancelled.`);
+      setCancelTargetApt(null);
+      fetchDoctorAppointments();
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel appointment.');
+    } finally {
+      setCancellingApt(false);
+    }
+  };
 
   const handleUpdateStatus = async (aptId, newStatus, note = '') => {
     try {
@@ -353,100 +406,87 @@ export default function DoctorWorkstationView() {
 
   return (
     <div className="doctor-workstation-container">
-      {/* Clinician Header with Live Notification Alert */}
-      <div className="doctor-dash-header">
-        <div>
-          <span className="role-kicker">Clinician Workstation</span>
-          <h2 className="doctor-dash-title">Doctor Consultation Dashboard</h2>
-          <p className="doctor-dash-sub">
-            Review your patient queue, start diagnostic consultations, record medical notes, and complete encounters.
-          </p>
+      {/* Clinician Header */}
+      {isSchedulePath ? (
+        <div className="doctor-dash-header">
+          <div>
+            <span className="role-kicker">Clinician Schedule</span>
+            <h2 className="doctor-dash-title">My Working Hours &amp; Schedule</h2>
+            <p className="doctor-dash-sub">
+              Manage your weekly working days, daily shifts, and consultation slot durations.
+            </p>
+          </div>
         </div>
-        <div className="doctor-header-right-side">
-          <button
-            type="button"
-            className="btn-header-set-schedule"
-            onClick={() => {
-              navigate('/schedule');
-              setIsEditingSchedule(false);
-            }}
-          >
-            ⏰ My Working Hours
-          </button>
-          <div className="doctor-kpi-group">
-            <div className="doc-kpi-card">
-              <span className="kpi-label">Today's Total</span>
-              <span className="kpi-val">{todayAppointments.length}</span>
-            </div>
-            <div className="doc-kpi-card checked-in">
-              <span className="kpi-label">Checked-In / Waiting</span>
-              <span className="kpi-val">
-                {todayAppointments.filter((a) => a.status === 'CHECKED_IN').length}
-              </span>
-            </div>
-            <div className="doc-kpi-card done">
-              <span className="kpi-label">Completed Today</span>
-              <span className="kpi-val">
-                {todayAppointments.filter((a) => a.status === 'COMPLETED').length}
-              </span>
+      ) : (
+        <div className="doctor-dash-header">
+          <div>
+            <span className="role-kicker">Clinician Workstation</span>
+            <h2 className="doctor-dash-title">Doctor Consultation Dashboard</h2>
+            <p className="doctor-dash-sub">
+              Review your patient queue, start diagnostic consultations, record medical notes, and complete encounters.
+            </p>
+          </div>
+          <div className="doctor-header-right-side">
+            <div className="doctor-kpi-group">
+              <div className="doc-kpi-card">
+                <span className="kpi-label">Today's Total</span>
+                <span className="kpi-val">{todayAppointments.length}</span>
+              </div>
+              <div className="doc-kpi-card checked-in">
+                <span className="kpi-label">Checked-In / Waiting</span>
+                <span className="kpi-val">
+                  {todayAppointments.filter((a) => a.status === 'CHECKED_IN').length}
+                </span>
+              </div>
+              <div className="doc-kpi-card done">
+                <span className="kpi-label">Completed Today</span>
+                <span className="kpi-val">
+                  {todayAppointments.filter((a) => a.status === 'COMPLETED').length}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Tabs navigation */}
-      <div className="doctor-tabs-bar">
-        <button
-          type="button"
-          className={`doctor-tab-pill ${filterTab === 'TODAY' && location.pathname !== '/schedule' ? 'active' : ''}`}
-          onClick={() => {
-            if (location.pathname === '/schedule') {
-              navigate('/appointments');
-            } else {
+      {/* Tabs navigation - Only on Appointments */}
+      {!isSchedulePath && (
+        <div className="doctor-tabs-bar">
+          <button
+            type="button"
+            className={`doctor-tab-pill ${filterTab === 'TODAY' ? 'active' : ''}`}
+            onClick={() => {
+              setDocAptPage(1);
               setFilterTab('TODAY');
-            }
-          }}
-        >
-          Today's Schedule ({todayAppointments.length})
-        </button>
-        <button
-          type="button"
-          className={`doctor-tab-pill ${filterTab === 'UPCOMING' && location.pathname !== '/schedule' ? 'active' : ''}`}
-          onClick={() => {
-            if (location.pathname === '/schedule') {
-              navigate('/appointments');
-            }
-            setFilterTab('UPCOMING');
-          }}
-        >
-          Upcoming Bookings ({upcomingAppointments.length})
-        </button>
-        <button
-          type="button"
-          className={`doctor-tab-pill ${filterTab === 'HISTORY' && location.pathname !== '/schedule' ? 'active' : ''}`}
-          onClick={() => {
-            if (location.pathname === '/schedule') {
-              navigate('/appointments');
-            }
-            setFilterTab('HISTORY');
-          }}
-        >
-          Encounter History ({previousAppointments.length})
-        </button>
-        <button
-          type="button"
-          className={`doctor-tab-pill doc-tab-schedule ${filterTab === 'SCHEDULE' || location.pathname === '/schedule' ? 'active' : ''}`}
-          onClick={() => {
-            navigate('/schedule');
-            setIsEditingSchedule(false);
-          }}
-        >
-          ⏰ My Working Hours &amp; Schedule
-        </button>
-      </div>
+            }}
+          >
+            Today's Schedule ({todayAppointments.length})
+          </button>
+          <button
+            type="button"
+            className={`doctor-tab-pill ${filterTab === 'UPCOMING' ? 'active' : ''}`}
+            onClick={() => {
+              setDocAptPage(1);
+              setFilterTab('UPCOMING');
+            }}
+          >
+            Upcoming Bookings ({upcomingAppointments.length})
+          </button>
+          <button
+            type="button"
+            className={`doctor-tab-pill ${filterTab === 'HISTORY' ? 'active' : ''}`}
+            onClick={() => {
+              setDocAptPage(1);
+              setFilterTab('HISTORY');
+            }}
+          >
+            Encounter History ({previousAppointments.length})
+          </button>
+        </div>
+      )}
 
       {/* View Switch: Schedule Configuration or Queue Table */}
-      {filterTab === 'SCHEDULE' ? (
+      {isSchedulePath ? (
         !isEditingSchedule ? (
           /* View Mode: Currently Configured Schedule */
           <div className="doctor-schedule-card">
@@ -546,7 +586,7 @@ export default function DoctorWorkstationView() {
                   Update timing particular to each day (Mon to Sun) or copy across days, then save changes.
                 </p>
               </div>
-              <div className="doc-sched-actions" style={{ display: 'flex', gap: '8px' }}>
+              <div className="doc-sched-actions">
                 <button
                   type="button"
                   className="btn-cancel-edit"
@@ -755,99 +795,135 @@ export default function DoctorWorkstationView() {
               <span>Newly booked patient appointments will instantly appear here.</span>
             </div>
           ) : (
-            <table className="doctor-queue-table">
-              <thead>
-                <tr>
-                  <th>Time &amp; Token</th>
-                  <th>Patient Details</th>
-                  <th>Type &amp; Reason</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Clinical Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedList.map((apt) => {
-                  const time12 = new Date(apt.startAt).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  });
-                  const dateShort = new Date(apt.startAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  });
-                  const pat = apt.patientId || {};
+            <div className="doc-table-wrap">
+              <table className="doctor-queue-table">
+                <thead>
+                  <tr>
+                    <th>Time &amp; Token</th>
+                    <th>Patient Details</th>
+                    <th>Type &amp; Reason</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Clinical Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="fade-in-rows">
+                  {paginatedList.map((apt) => {
+                    const time12 = formatTimeRange(apt.startAt, apt.endAt);
+                    const dateShort = new Date(apt.startAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                    const pat = apt.patientId || {};
 
-                  return (
-                    <tr key={apt._id} className={apt.status === 'IN_PROGRESS' ? 'row-in-progress' : ''}>
-                      <td>
-                        <div className="cell-time-val">{time12}</div>
-                        <div className="cell-date-sub">{dateShort} • {apt.appointmentCode}</div>
-                      </td>
-                      <td>
-                        <div className="cell-patient-name">{pat.name || 'Walk-in Patient'}</div>
-                        <div className="cell-patient-sub">
-                          {pat.patientCode} • {pat.gender || 'Unknown'} • {pat.bloodGroup || 'Blood: N/A'}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="cell-type-chip">{apt.appointmentType || 'CONSULTATION'}</span>
-                        <div className="cell-reason-text">{apt.reason || 'Routine checkup'}</div>
-                      </td>
-                      <td>
-                        <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="doc-action-btns">
-                          {apt.status === 'CHECKED_IN' && (
-                            <button
-                              type="button"
-                              className="btn-start-consult"
-                              onClick={() => handleUpdateStatus(apt._id, 'IN_PROGRESS')}
-                            >
-                              Call Patient In
-                            </button>
-                          )}
-                          {apt.status === 'IN_PROGRESS' && (
-                            <button
-                              type="button"
-                              className="btn-open-enc"
-                              onClick={() => {
-                                setActiveConsultation(apt);
-                                setClinicalNotes(apt.consultationNotes || '');
-                              }}
-                            >
-                              Write Rx &amp; Complete
-                            </button>
-                          )}
-                          {['CONFIRMED', 'PENDING'].includes(apt.status) && (
-                            <button
-                              type="button"
-                              className="btn-quick-checkin"
-                              onClick={() => handleUpdateStatus(apt._id, 'CHECKED_IN')}
-                            >
-                              Check In
-                            </button>
-                          )}
-                          {apt.status === 'COMPLETED' && (
-                            <button
-                              type="button"
-                              className="btn-view-notes"
-                              onClick={() => {
-                                setActiveConsultation(apt);
-                                setClinicalNotes(apt.consultationNotes || '');
-                              }}
-                            >
-                              View Summary
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr
+                        key={apt._id}
+                        className={`smooth-table-row ${apt.status === 'IN_PROGRESS' ? 'row-in-progress' : ''}`}
+                      >
+                        <td>
+                          <div className="cell-time-val">{time12}</div>
+                          <div className="cell-date-sub">{dateShort} • {apt.appointmentCode}</div>
+                        </td>
+                        <td>
+                          <div className="cell-patient-name">{pat.name || 'Walk-in Patient'}</div>
+                          <div className="cell-patient-sub">
+                            {pat.patientCode} • {pat.gender || 'Unknown'} • {pat.bloodGroup || 'Blood: N/A'}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="cell-type-chip">{apt.appointmentType || 'CONSULTATION'}</span>
+                          <div className="cell-reason-text">{apt.reason || 'Routine checkup'}</div>
+                        </td>
+                        <td>
+                          <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div className="doc-action-btns">
+                            {apt.status === 'CHECKED_IN' && (
+                              <button
+                                type="button"
+                                className="btn-start-consult"
+                                onClick={() => handleUpdateStatus(apt._id, 'IN_PROGRESS')}
+                              >
+                                Call Patient In
+                              </button>
+                            )}
+                            {apt.status === 'IN_PROGRESS' && (
+                              <button
+                                type="button"
+                                className="btn-open-enc"
+                                onClick={() => {
+                                  setActiveConsultation(apt);
+                                  setClinicalNotes(apt.consultationNotes || '');
+                                }}
+                              >
+                                Write Rx &amp; Complete
+                              </button>
+                            )}
+                            {['CONFIRMED', 'PENDING'].includes(apt.status) && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn-quick-checkin"
+                                  onClick={() => handleUpdateStatus(apt._id, 'CHECKED_IN')}
+                                >
+                                  Check In
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-doc-cancel-apt"
+                                  onClick={() => setCancelTargetApt(apt)}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            {apt.status === 'CHECKED_IN' && (
+                              <button
+                                type="button"
+                                className="btn-doc-cancel-apt"
+                                onClick={() => setCancelTargetApt(apt)}
+                              >
+                                Cancel
+                              </button>
+                            )}
+                            {apt.status === 'COMPLETED' && (
+                              <button
+                                type="button"
+                                className="btn-view-notes"
+                                onClick={() => {
+                                  setActiveConsultation(apt);
+                                  setClinicalNotes(apt.consultationNotes || '');
+                                }}
+                              >
+                                View Summary
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {displayedList.length > 0 && (
+            <div className="doc-pagination-wrap">
+              <Pagination
+                page={docAptPage}
+                totalPages={totalDocAptPages}
+                total={displayedList.length}
+                limit={docAptLimit}
+                onPageChange={setDocAptPage}
+                onLimitChange={(newLimit) => {
+                  setDocAptLimit(newLimit);
+                  setDocAptPage(1);
+                }}
+                itemName="appointments"
+              />
+            </div>
           )}
         </div>
       )}
@@ -980,6 +1056,19 @@ export default function DoctorWorkstationView() {
           </div>
         </Modal>
       )}
+
+      {/* Doctor Cancel Appointment Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(cancelTargetApt)}
+        onClose={() => setCancelTargetApt(null)}
+        onConfirm={handleCancelByDoctor}
+        title="Cancel Appointment"
+        message={`Are you sure you want to cancel the booking for ${cancelTargetApt?.patientId?.name || 'this patient'} (${cancelTargetApt?.appointmentCode})?`}
+        confirmText="Yes, Cancel Booking"
+        cancelText="Keep Booking"
+        variant="danger"
+        loading={cancellingApt}
+      />
     </div>
   );
 }

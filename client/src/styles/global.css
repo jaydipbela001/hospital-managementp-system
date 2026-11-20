@@ -23,3 +23,33 @@ a:hover {
   outline-offset: 2px;
 }
 
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Hide scrollbars globally across all modern browsers while preserving smooth scrolling */
+.hide-scrollbar,
+.doctor-tabs-bar,
+.days-nav-grid,
+.doc-table-wrap,
+.portal-tabs-nav,
+.modal-slots-grid,
+.drawer-slots-pill-grid {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar,
+.doctor-tabs-bar::-webkit-scrollbar,
+.days-nav-grid::-webkit-scrollbar,
+.doc-table-wrap::-webkit-scrollbar,
+.portal-tabs-nav::-webkit-scrollbar,
+.modal-slots-grid::-webkit-scrollbar,
+.drawer-slots-pill-grid::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+

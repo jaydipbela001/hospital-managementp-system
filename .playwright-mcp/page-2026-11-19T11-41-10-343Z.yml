@@ -1,0 +1,70 @@
+- generic [ref=e6]:
+  - generic [ref=e68]:
+    - complementary [ref=e69]:
+      - generic [ref=e70]:
+        - generic [aria-hidden] [ref=e71]: +
+        - generic [ref=e72]:
+          - generic [ref=e73]: LifeCare HMS
+          - generic [ref=e74]: Patient portal
+      - navigation [ref=e75]:
+        - link "Dashboard" [ref=e76] [cursor=pointer]:
+          - /url: /appointments
+        - link "Book a visit" [active] [ref=e78] [cursor=pointer]:
+          - /url: /appointments?tab=book
+        - link "My appointments" [ref=e80] [cursor=pointer]:
+          - /url: /appointments?tab=my
+      - generic [ref=e83]:
+        - generic [ref=e84]: Signed in as
+        - generic [ref=e85]: Jaydip Bela
+    - generic [ref=e86]:
+      - banner [ref=e87]:
+        - generic [ref=e88]: Main Hospital Campus
+        - button "J Jaydip Bela" [ref=e92] [cursor=pointer]:
+          - generic [ref=e93]: J
+          - generic [ref=e94]: Jaydip Bela
+          - generic [aria-hidden] [ref=e95]: ▾
+      - main [ref=e96]:
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - heading "Good morning, Jaydip" [level=1] [ref=e101]
+              - paragraph [ref=e102]: Find a specialist, pick a free slot and keep track of every visit here.
+            - generic [ref=e103]:
+              - generic [ref=e104]: Your next visit
+              - generic [ref=e105]: Dr. Sarah Mitchell
+              - generic [ref=e106]: 20 Nov 2026 · 9:30 AM
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: "2"
+              - generic [ref=e110]: Total visits
+            - generic [ref=e111]:
+              - generic [ref=e112]: "2"
+              - generic [ref=e113]: Upcoming
+            - generic [ref=e114]:
+              - generic [ref=e115]: "0"
+              - generic [ref=e116]: Cancelled
+          - generic [ref=e170]:
+            - heading "Book a visit" [level=2] [ref=e171]
+            - paragraph [ref=e172]: Search by doctor name or specialty, then choose a time.
+            - generic [ref=e173]:
+              - textbox "Search doctors" [ref=e174]
+              - combobox [ref=e175]:
+                - option "All departments" [selected]
+                - option "Cardiology"
+                - option "General Medicine"
+            - generic [ref=e176]:
+              - generic [ref=e177]:
+                - generic [ref=e178]: J
+                - generic [ref=e179]:
+                  - generic [ref=e180]: Dr. Jenil Shah
+                  - generic [ref=e181]: Consultant Physician · General Medicine · 5+ yrs
+                  - generic [ref=e182]: Free consultation
+                - button "Book" [ref=e183] [cursor=pointer]
+              - generic [ref=e184]:
+                - generic [ref=e185]: S
+                - generic [ref=e186]:
+                  - generic [ref=e187]: Dr. Sarah Mitchell
+                  - generic [ref=e188]: Cardiologist · Cardiology · 5+ yrs
+                  - generic [ref=e189]: ₹75
+                - button "Book" [ref=e190] [cursor=pointer]
+  - region "Notifications Alt+T"
