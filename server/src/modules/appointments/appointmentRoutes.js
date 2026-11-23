@@ -13,10 +13,10 @@ import {
 
 export const appointmentRouter = Router();
 
-appointmentRouter.use(authenticate);
+// Calculate free slots for a doctor on a given date (Public/Authenticated)
+appointmentRouter.get("/slots", getAvailableSlots);
 
-// View appointments: Admin, Receptionist, Doctor, Nurse, Patient
-appointmentRouter.get("/", getAppointments);
+appointmentRouter.use(authenticate);
 
 // Doctor schedule (working hours and exceptions)
 appointmentRouter.get("/schedule", getDoctorSchedule);
@@ -26,8 +26,8 @@ appointmentRouter.put(
   updateDoctorSchedule
 );
 
-// Calculate free slots for a doctor on a given date
-appointmentRouter.get("/slots", getAvailableSlots);
+// View appointments: Admin, Receptionist, Doctor, Nurse, Patient
+appointmentRouter.get("/", getAppointments);
 
 // Book appointment: Front desk, Admins, and Patients
 appointmentRouter.post(

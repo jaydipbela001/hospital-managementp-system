@@ -29,12 +29,12 @@ export function DashboardPage() {
         if (res?.data) dataCache.set('departments_list', res.data);
       }).catch(() => {});
 
-      apiClient('/patients?page=1&limit=10').then((res) => {
-        if (res?.data) dataCache.set('patients_page_1', { data: res.data, meta: res.meta });
+      apiClient('/patients?page=1&limit=5').then((res) => {
+        if (res?.data) dataCache.set('patients_page_1_5', { data: res.data, meta: res.meta });
       }).catch(() => {});
 
-      apiClient('/staff?page=1&limit=10').then((res) => {
-        if (res?.data) dataCache.set('staff_page_1', { data: res.data, meta: res.meta });
+      apiClient('/staff?page=1&limit=5').then((res) => {
+        if (res?.data) dataCache.set('staff_page_1_5', { data: res.data, meta: res.meta });
       }).catch(() => {});
     }
   }, [role]);

@@ -22,6 +22,20 @@ export const dataCache = {
     cacheStore.set(key, { data, timestamp: Date.now() });
   },
 
+  // Per-section persistent limit preference in localStorage
+  getLimit(section, defaultVal = 5) {
+    const stored = localStorage.getItem(`hms_limit_${section}`);
+    if (stored) {
+      const n = Number(stored);
+      if (n === 5 || n === 10) return n;
+    }
+    return defaultVal;
+  },
+
+  setLimit(section, limitVal) {
+    localStorage.setItem(`hms_limit_${section}`, String(limitVal));
+  },
+
   // Specialized 5-minute TTL check for static resources (Doctors, Departments)
   getStatic(key) {
     return this.get(key, DEFAULT_STATIC_TTL);

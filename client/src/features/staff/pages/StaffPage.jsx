@@ -1,21 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
 import { dataCache } from '../../../services/dataCache';
 import { PageHeader, Button, Input, Select, Modal, Loader, Pagination } from '../../../components/common';
 
 export default function StaffPage() {
-  const cachedStaff = dataCache.get('staff_page_1');
+  const tableWrapRef = useRef(null);
+  const currentLimit = dataCache.getLimit('staff', 5);
+  const cachedStaff = dataCache.get(`staff_page_1_${currentLimit}`);
   const cachedDepts = dataCache.get('departments_list');
 
   const [staff, setStaff] = useState(cachedStaff?.data || []);
   const [departments, setDepartments] = useState(cachedDepts || []);
   const [loading, setLoading] = useState(!cachedStaff);
+  const [isFiltering, setIsFiltering] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [meta, setMeta] = useState(cachedStaff?.meta || { page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [limit, setLimit] = useState(currentLimit);
+  const [meta, setMeta] = useState(cachedStaff?.meta || { page: 1, limit: currentLimit, total: 0, totalPages: 1 });
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -31,9 +34,13 @@ export default function StaffPage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const fetchStaff = async (searchTerm = search, pageNum = page, limitNum = limit) => {
+  const fetchStaff = async (searchTerm = search, pageNum = page, limitNum = limit, isSilent = false) => {
     try {
-      setLoading(true);
+      if (isSilent) {
+        setIsFiltering(true);
+      } else {
+        setLoading(true);
+      }
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm.trim());
       params.append('page', pageNum);
@@ -42,12 +49,13 @@ export default function StaffPage() {
       setStaff(res?.data || []);
       if (res?.meta) setMeta(res.meta);
       if (!searchTerm && pageNum === 1) {
-        dataCache.set('staff_page_1', { data: res?.data || [], meta: res?.meta });
+        dataCache.set(`staff_page_1_${limitNum}`, { data: res?.data || [], meta: res?.meta });
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setIsFiltering(false);
     }
   };
 
@@ -111,7 +119,7 @@ export default function StaffPage() {
   };
 
   return (
-    <div style={{ padding: '1.5rem' }}>
+    <div style={{ padding: '0.2rem' }}>
       <PageHeader
         title="Staff & Doctor Management"
         subtitle="View and manage hospital clinicians, nurses, and operational staff"
@@ -122,7 +130,7 @@ export default function StaffPage() {
         }
       />
 
-      <div style={{ display: 'flex', gap: '1rem', margin: '1rem 0' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
         <input
           type="text"
           placeholder="Search staff by name or email..."
@@ -136,9 +144,11 @@ export default function StaffPage() {
           }}
           style={{
             flex: 1,
-            padding: '0.6rem 1rem',
+            minWidth: 0,
+            padding: '0.6rem 0.75rem',
             borderRadius: '6px',
             border: '1px solid #cbd5e1',
+            fontSize: '0.875rem',
           }}
         />
         <Button
@@ -147,111 +157,125 @@ export default function StaffPage() {
             setPage(1);
             fetchStaff(search, 1, limit);
           }}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0, padding: '0.6rem 1rem' }}
         >
           Search
         </Button>
       </div>
 
-      {loading ? (
+      {loading && staff.length === 0 ? (
         <Loader />
       ) : staff.length === 0 ? (
         <p style={{ color: '#64748b' }}>No staff members found.</p>
       ) : (
-        <div style={{ overflowX: 'auto', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', color: '#475569' }}>
-                <th style={{ padding: '0.75rem 1rem' }}>User</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Role</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Department</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Phone</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((u) => (
-                <tr key={u._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {u.avatarUrl ? (
-                      <img
-                        src={`http://localhost:5000${u.avatarUrl}`}
-                        alt={u.name}
-                        style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div
+        <div className={`reception-table-card ${isFiltering ? 'filtering' : ''}`} style={{ minHeight: '480px' }}>
+          {isFiltering && (
+            <div className="table-filter-progress-bar">
+              <div className="filter-progress-indeterminate"></div>
+            </div>
+          )}
+          <div ref={tableWrapRef} className="reception-table-wrap" style={{ minHeight: '380px' }}>
+            <table className="reception-queue-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', color: '#475569' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>User</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Role</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Department</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Phone</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody className="fade-in-rows">
+                {staff.map((u) => (
+                  <tr key={u._id} className="smooth-table-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {u.avatarUrl ? (
+                        <img
+                          src={`http://localhost:5000${u.avatarUrl}`}
+                          alt={u.name}
+                          style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            background: '#e2e8f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            color: '#475569',
+                          }}
+                        >
+                          {u.name?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b' }}>{u.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{u.email}</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span
                         style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '50%',
-                          background: '#e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 'bold',
-                          color: '#475569',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: '#e0e7ff',
+                          color: '#3730a3',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
                         }}
                       >
-                        {u.name?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <div style={{ fontWeight: 600, color: '#1e293b' }}>{u.name}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{u.email}</div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        background: '#e0e7ff',
-                        color: '#3730a3',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {u.role}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#334155' }}>
-                    {u.departmentId?.name || '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>{u.phone || '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '9999px',
-                        backgroundColor: u.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2',
-                        color: u.status === 'ACTIVE' ? '#15803d' : '#b91c1c',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      {u.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#334155' }}>
+                      {u.departmentId?.name || '—'}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>{u.phone || '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          backgroundColor: u.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2',
+                          color: u.status === 'ACTIVE' ? '#15803d' : '#b91c1c',
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        {u.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="reception-table-spacer"></div>
+          </div>
 
-          <Pagination
-            page={page}
-            totalPages={meta.totalPages}
-            total={meta.total}
-            limit={limit}
-            onPageChange={(p) => {
-              setPage(p);
-              fetchStaff(search, p, limit);
-            }}
-            onLimitChange={(l) => {
-              setLimit(l);
-              setPage(1);
-              fetchStaff(search, 1, l);
-            }}
-            itemName="staff members"
-          />
+          <div className="reception-pagination-wrap" style={{ marginTop: 'auto' }}>
+            <Pagination
+              page={page}
+              totalPages={meta.totalPages}
+              total={meta.total}
+              limit={limit}
+              onPageChange={(p) => {
+                setPage(p);
+                fetchStaff(search, p, limit, true);
+                if (tableWrapRef.current) tableWrapRef.current.scrollLeft = 0;
+              }}
+              onLimitChange={(l) => {
+                setLimit(l);
+                dataCache.setLimit('staff', l);
+                setPage(1);
+                fetchStaff(search, 1, l, true);
+                if (tableWrapRef.current) tableWrapRef.current.scrollLeft = 0;
+              }}
+              itemName="staff"
+            />
+          </div>
         </div>
       )}
 
@@ -303,7 +327,7 @@ export default function StaffPage() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', height: '40px' }}
               >
                 <option value="DOCTOR">Doctor</option>
                 <option value="NURSE">Nurse</option>
@@ -319,7 +343,7 @@ export default function StaffPage() {
               <select
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', height: '40px' }}
               >
                 <option value="">None / Unassigned</option>
                 {departments.map((d) => (

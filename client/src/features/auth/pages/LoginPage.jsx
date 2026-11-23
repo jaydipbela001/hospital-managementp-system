@@ -375,7 +375,8 @@ export function LoginPage() {
               <div className="patient-security-note">
                 <span className="security-bold-line">✔ Your data is encrypted</span>
                 <span className="security-sub-line">
-                  We only use it to run your hospital visits.
+                  We
+                   only use it to run your hospital visits.
                 </span>
               </div>
             </form>

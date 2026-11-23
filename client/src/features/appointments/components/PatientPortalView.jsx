@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/apiClient';
@@ -42,7 +42,10 @@ export default function PatientPortalView() {
   // Filters & State
   const [searchDoctor, setSearchDoctor] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
-  const [appointmentFilter, setAppointmentFilter] = useState('UPCOMING'); // 'UPCOMING' | 'ALL'
+  const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
+  const deptDropdownRef = useRef(null);
+  const [appointmentFilter, setAppointmentFilter] = useState('UPCOMING'); // 'UPCOMING' | 'CANCELLED' | 'ALL'
+  const [searchAptDoctor, setSearchAptDoctor] = useState('');
 
   // Pagination states
   const [docPage, setDocPage] = useState(1);
@@ -111,6 +114,17 @@ export default function PatientPortalView() {
   useEffect(() => {
     fetchData();
   }, [currentTab]);
+
+  // Click outside listener for department dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target)) {
+        setDeptDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Lock body scroll when doctor booking popup is open
   useEffect(() => {
@@ -315,12 +329,21 @@ export default function PatientPortalView() {
     .filter((apt) => apt.status === 'CANCELLED')
     .sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
 
-  const displayedAppointments =
+  const filteredByTabAppointments =
     appointmentFilter === 'UPCOMING'
       ? upcomingAppointments
       : appointmentFilter === 'CANCELLED'
       ? cancelledAppointments
       : [...myAppointments].sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
+
+  const displayedAppointments = filteredByTabAppointments.filter((apt) => {
+    if (!searchAptDoctor.trim()) return true;
+    const q = searchAptDoctor.toLowerCase();
+    const docName = (apt.doctorId?.name || '').toLowerCase();
+    const deptName = (apt.departmentId?.name || apt.doctorId?.doctorProfile?.specialization || '').toLowerCase();
+    const code = (apt.appointmentCode || '').toLowerCase();
+    return docName.includes(q) || deptName.includes(q) || code.includes(q);
+  });
 
   const totalAptPages = Math.ceil(displayedAppointments.length / aptLimit) || 1;
   const paginatedAppointments = displayedAppointments.slice((aptPage - 1) * aptLimit, aptPage * aptLimit);
@@ -410,31 +433,87 @@ export default function PatientPortalView() {
 
           {/* Search and Dept Filter */}
           <div className="filter-input-row">
-            <input
-              type="text"
-              placeholder="Search doctors"
-              value={searchDoctor}
-              onChange={(e) => {
-                setSearchDoctor(e.target.value);
-                setDocPage(1);
-              }}
-              className="doc-search-field"
-            />
-            <select
-              value={selectedDept}
-              onChange={(e) => {
-                setSelectedDept(e.target.value);
-                setDocPage(1);
-              }}
-              className="doc-dept-field"
-            >
-              <option value="ALL">All departments</option>
-              {departments.map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+            <div className="portal-search-wrap">
+              <input
+                type="text"
+                placeholder="Search by doctor name or specialty..."
+                value={searchDoctor}
+                onChange={(e) => {
+                  setSearchDoctor(e.target.value);
+                  setDocPage(1);
+                }}
+                className="doc-search-field"
+              />
+              {searchDoctor && (
+                <button
+                  type="button"
+                  className="clear-portal-search-btn"
+                  onClick={() => {
+                    setSearchDoctor('');
+                    setDocPage(1);
+                  }}
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Custom Styled Department Dropdown */}
+            <div className="portal-dept-select-wrap" ref={deptDropdownRef}>
+              <button
+                type="button"
+                className={`custom-searchable-trigger portal-dept-trigger ${deptDropdownOpen ? 'open' : ''}`}
+                onClick={() => setDeptDropdownOpen((prev) => !prev)}
+              >
+                <span className="trigger-text">
+                  {selectedDept === 'ALL'
+                    ? 'All departments'
+                    : departments.find((d) => d._id === selectedDept)?.name || 'All departments'}
+                </span>
+                <span className="trigger-chevron">▾</span>
+              </button>
+
+              {deptDropdownOpen && (
+                <div className="custom-searchable-dropdown-panel portal-dept-dropdown-panel">
+                  <div className="dropdown-options-list">
+                    <div
+                      className={`dropdown-option-item ${selectedDept === 'ALL' ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedDept('ALL');
+                        setDeptDropdownOpen(false);
+                        setDocPage(1);
+                      }}
+                    >
+                      <div className="option-doctor-info">
+                        <span className="option-doctor-name">All departments</span>
+                      </div>
+                      {selectedDept === 'ALL' && <span className="option-check">✓</span>}
+                    </div>
+
+                    {departments.map((dept) => {
+                      const isSelected = selectedDept === dept._id;
+                      return (
+                        <div
+                          key={dept._id}
+                          className={`dropdown-option-item ${isSelected ? 'active' : ''}`}
+                          onClick={() => {
+                            setSelectedDept(dept._id);
+                            setDeptDropdownOpen(false);
+                            setDocPage(1);
+                          }}
+                        >
+                          <div className="option-doctor-info">
+                            <span className="option-doctor-name">{dept.name}</span>
+                          </div>
+                          {isSelected && <span className="option-check">✓</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Doctor List */}
@@ -500,45 +579,108 @@ export default function PatientPortalView() {
           <h2 className="panel-heading">My appointments</h2>
           <p className="panel-subheading">Live status of your consultations.</p>
 
-          {/* Tab Filter: Upcoming vs Cancelled vs All */}
-          <div className="appointment-toggle-bar">
-            <button
-              type="button"
-              className={`apt-toggle-btn ${appointmentFilter === 'UPCOMING' ? 'active' : ''}`}
-              onClick={() => {
-                setAppointmentFilter('UPCOMING');
-                setAptPage(1);
-              }}
-            >
-              Upcoming
-            </button>
-            <button
-              type="button"
-              className={`apt-toggle-btn ${appointmentFilter === 'CANCELLED' ? 'active' : ''}`}
-              onClick={() => {
-                setAppointmentFilter('CANCELLED');
-                setAptPage(1);
-              }}
-            >
-              Cancelled
-            </button>
-            <button
-              type="button"
-              className={`apt-toggle-btn ${appointmentFilter === 'ALL' ? 'active' : ''}`}
-              onClick={() => {
-                setAppointmentFilter('ALL');
-                setAptPage(1);
-              }}
-            >
-              All
-            </button>
+          {/* Tab Filter and Search row */}
+          <div className="portal-appointments-controls-row">
+            <div className="appointment-toggle-bar">
+              <button
+                type="button"
+                className={`apt-toggle-btn ${appointmentFilter === 'UPCOMING' ? 'active' : ''}`}
+                onClick={() => {
+                  setAppointmentFilter('UPCOMING');
+                  setAptPage(1);
+                }}
+              >
+                Upcoming
+              </button>
+              <button
+                type="button"
+                className={`apt-toggle-btn ${appointmentFilter === 'CANCELLED' ? 'active' : ''}`}
+                onClick={() => {
+                  setAppointmentFilter('CANCELLED');
+                  setAptPage(1);
+                }}
+              >
+                Cancelled
+              </button>
+              <button
+                type="button"
+                className={`apt-toggle-btn ${appointmentFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => {
+                  setAppointmentFilter('ALL');
+                  setAptPage(1);
+                }}
+              >
+                All
+              </button>
+            </div>
+
+            {/* Search appointments by doctor */}
+            <div className="portal-apt-search-wrap">
+              <input
+                type="text"
+                placeholder="Search appointments by doctor..."
+                value={searchAptDoctor}
+                onChange={(e) => {
+                  setSearchAptDoctor(e.target.value);
+                  setAptPage(1);
+                }}
+                className="apt-doc-search-input"
+              />
+              {searchAptDoctor && (
+                <button
+                  type="button"
+                  className="clear-portal-search-btn"
+                  onClick={() => {
+                    setSearchAptDoctor('');
+                    setAptPage(1);
+                  }}
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           {/* List of Visits */}
           <div className="portal-visits-list">
             {paginatedAppointments.length === 0 ? (
-              <div className="no-appointments-box">
-                <p>No {appointmentFilter.toLowerCase()} appointments.</p>
+              <div className="portal-empty-appointments-card">
+                <div className="empty-apt-icon-box">📅</div>
+                <h4 className="empty-apt-title">
+                  {searchAptDoctor ? 'No matching appointments' : `No ${appointmentFilter.toLowerCase()} appointments`}
+                </h4>
+                <p className="empty-apt-desc">
+                  {searchAptDoctor
+                    ? `No appointment records found matching "${searchAptDoctor}".`
+                    : appointmentFilter === 'UPCOMING'
+                    ? "You don't have any upcoming visits scheduled right now. Search doctors to book a consultation."
+                    : appointmentFilter === 'CANCELLED'
+                    ? 'No cancelled appointments on record.'
+                    : 'You have not booked any appointments yet.'}
+                </p>
+                {searchAptDoctor ? (
+                  <button
+                    type="button"
+                    className="btn-empty-clear-search"
+                    onClick={() => {
+                      setSearchAptDoctor('');
+                      setAptPage(1);
+                    }}
+                  >
+                    Clear Doctor Search
+                  </button>
+                ) : (
+                  currentTab === 'my' && (
+                    <button
+                      type="button"
+                      className="btn-empty-book-visit"
+                      onClick={() => setSearchParams({ tab: 'book' })}
+                    >
+                      + Book a Visit Now
+                    </button>
+                  )
+                )}
               </div>
             ) : (
               paginatedAppointments.map((apt) => {

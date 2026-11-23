@@ -45,9 +45,9 @@ export function AdminLayout({ children }) {
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: '📊', roles: ['ALL'] },
     { label: 'Appointments', path: '/appointments', icon: '📅', roles: ['RECEPTIONIST', 'DOCTOR'] },
-    { label: 'My Schedule', path: '/schedule', icon: '⏰', roles: ['DOCTOR'] },
     { label: 'Patients', path: '/patients', icon: '🏥', roles: ['RECEPTIONIST', 'DOCTOR'] },
     { label: 'Doctors & Staff', path: '/doctors', icon: '👨‍⚕️', roles: ['RECEPTIONIST'] },
+    { label: 'My Schedule', path: '/schedule', icon: '⏰', roles: ['DOCTOR'] },
   ];
 
   // Filter navigation items by current user role

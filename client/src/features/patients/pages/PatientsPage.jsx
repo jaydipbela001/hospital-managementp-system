@@ -6,15 +6,17 @@ import { dataCache } from '../../../services/dataCache';
 import { PageHeader, Button, Input, Modal, Loader, Pagination } from '../../../components/common';
 
 export default function PatientsPage() {
+  const tableWrapRef = useRef(null);
   const navigate = useNavigate();
-  const cached = dataCache.get('patients_page_1');
+  const currentLimit = dataCache.getLimit('patients', 5);
+  const cached = dataCache.get(`patients_page_1_${currentLimit}`);
   const [patients, setPatients] = useState(cached?.data || []);
   const [initialLoading, setInitialLoading] = useState(!cached);
   const [isSearching, setIsSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [meta, setMeta] = useState(cached?.meta || { page: 1, limit: 10, total: 0, totalPages: 1 });
+  const [limit, setLimit] = useState(currentLimit);
+  const [meta, setMeta] = useState(cached?.meta || { page: 1, limit: currentLimit, total: 0, totalPages: 1 });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function PatientsPage() {
           setMeta(res.meta);
         }
         if (!term && pageNum === 1) {
-          dataCache.set('patients_page_1', { data: res?.data || [], meta: res?.meta });
+          dataCache.set(`patients_page_1_${limitNum}`, { data: res?.data || [], meta: res?.meta });
         }
       }
     } catch (err) {
@@ -97,12 +99,15 @@ export default function PatientsPage() {
     if (newPage < 1 || newPage > (meta.totalPages || 1) || newPage === page) return;
     setPage(newPage);
     fetchPatients(search, newPage, limit, true);
+    if (tableWrapRef.current) tableWrapRef.current.scrollLeft = 0;
   };
 
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
+    dataCache.setLimit('patients', newLimit);
     setPage(1);
     fetchPatients(search, 1, newLimit, true);
+    if (tableWrapRef.current) tableWrapRef.current.scrollLeft = 0;
   };
 
   const handleRegister = async (e) => {
@@ -149,7 +154,7 @@ export default function PatientsPage() {
   };
 
   return (
-    <div style={{ padding: '1.5rem' }}>
+    <div style={{ padding: '0.2rem' }}>
       <PageHeader
         title="Patient Management"
         subtitle="Search, register, and review patient clinical profiles"
@@ -160,8 +165,8 @@ export default function PatientsPage() {
         }
       />
 
-      <div style={{ display: 'flex', gap: '0.75rem', margin: '1rem 0', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
           <input
             type="text"
             placeholder="Search by patient code, name, or phone..."
@@ -170,10 +175,11 @@ export default function PatientsPage() {
             onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
             style={{
               width: '100%',
-              padding: '0.65rem 2.5rem 0.65rem 1rem',
+              boxSizing: 'border-box',
+              padding: '0.6rem 2.25rem 0.6rem 0.75rem',
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
-              fontSize: '0.9rem',
+              fontSize: '0.875rem',
               outline: 'none',
               transition: 'border-color 0.15s ease',
             }}
@@ -202,12 +208,17 @@ export default function PatientsPage() {
             </button>
           )}
         </div>
-        <Button variant="outline" onClick={handleManualSearch} disabled={isSearching}>
+        <Button
+          variant="outline"
+          onClick={handleManualSearch}
+          disabled={isSearching}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0, padding: '0.6rem 1rem' }}
+        >
           {isSearching ? 'Searching...' : 'Search'}
         </Button>
       </div>
 
-      {initialLoading ? (
+      {initialLoading && patients.length === 0 ? (
         <Loader />
       ) : patients.length === 0 ? (
         <div style={{ padding: '2.5rem', textAlign: 'center', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -236,68 +247,78 @@ export default function PatientsPage() {
           )}
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', color: '#475569' }}>
-                <th style={{ padding: '0.75rem 1rem' }}>Patient Code</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Name</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Gender</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Blood</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Phone</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p) => (
-                <tr key={p._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#4f46e5' }}>
-                    {p.patientCode}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: '#1e293b' }}>
-                    {p.name}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{p.gender}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#b91c1c', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
-                      {p.bloodGroup}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{p.phone}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: '9999px', background: p.status === 'ACTIVE' ? '#dcfce7' : '#f1f5f9', color: p.status === 'ACTIVE' ? '#15803d' : '#64748b', fontSize: '0.75rem' }}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => navigate('/appointments', { state: { preselectedPatientId: p._id } })}
-                      >
-                        Book
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => openDetails(p)}>
-                        View
-                      </Button>
-                    </div>
-                  </td>
+        <div className={`reception-table-card ${isSearching ? 'filtering' : ''}`} style={{ minHeight: '480px' }}>
+          {isSearching && (
+            <div className="table-filter-progress-bar">
+              <div className="filter-progress-indeterminate"></div>
+            </div>
+          )}
+          <div ref={tableWrapRef} className="reception-table-wrap" style={{ minHeight: '380px' }}>
+            <table className="reception-queue-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', color: '#475569' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>Patient Code</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Name</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Gender</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Blood</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Phone</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="fade-in-rows">
+                {patients.map((p) => (
+                  <tr key={p._id} className="smooth-table-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#4f46e5' }}>
+                      {p.patientCode}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: '#1e293b' }}>
+                      {p.name}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{p.gender}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#b91c1c', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+                        {p.bloodGroup}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{p.phone}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '9999px', background: p.status === 'ACTIVE' ? '#dcfce7' : '#f1f5f9', color: p.status === 'ACTIVE' ? '#15803d' : '#64748b', fontSize: '0.75rem' }}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => navigate('/appointments', { state: { preselectedPatientId: p._id } })}
+                        >
+                          Book
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => openDetails(p)}>
+                          View
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="reception-table-spacer"></div>
+          </div>
 
-          <Pagination
-            page={page}
-            totalPages={meta.totalPages}
-            total={meta.total}
-            limit={limit}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            itemName="patients"
-          />
+          <div className="reception-pagination-wrap" style={{ marginTop: 'auto' }}>
+            <Pagination
+              page={page}
+              totalPages={meta.totalPages}
+              total={meta.total}
+              limit={limit}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+              itemName="patients"
+            />
+          </div>
         </div>
       )}
 
@@ -316,7 +337,7 @@ export default function PatientsPage() {
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', height: '40px' }}
                 >
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
@@ -329,7 +350,7 @@ export default function PatientsPage() {
                 <select
                   value={bloodGroup}
                   onChange={(e) => setBloodGroup(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', height: '40px' }}
                 >
                   <option value="UNKNOWN">Unknown</option>
                   <option value="A+">A+</option>

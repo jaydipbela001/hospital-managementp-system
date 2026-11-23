@@ -23,7 +23,7 @@ const generateAppointmentCode = async () => {
 
 export const getAppointments = async (req, res, next) => {
   try {
-    const { doctorId, patientId, status, date, page = 1, limit = 50 } = req.query;
+    const { doctorId, patientId, status, date, timeframe, page = 1, limit = 50 } = req.query;
     const filter = {};
 
     if (doctorId) filter.doctorId = doctorId;
@@ -48,11 +48,20 @@ export const getAppointments = async (req, res, next) => {
       filter.patientId = patient._id;
     }
 
-    if (date) {
-      const dayStart = new Date(date);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(date);
-      dayEnd.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    if (timeframe === "TODAY") {
+      filter.startAt = { $gte: todayStart, $lte: todayEnd };
+    } else if (timeframe === "UPCOMING") {
+      filter.startAt = { $gt: now };
+    } else if (timeframe === "PAST") {
+      filter.startAt = { $lt: now };
+    } else if (date && date !== "ALL") {
+      const [year, month, day] = date.split("-").map(Number);
+      const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
       filter.startAt = { $gte: dayStart, $lte: dayEnd };
     }
 
